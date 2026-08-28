@@ -1,0 +1,467 @@
+/**
+ * Secrela hero vault — bank-safe loop (9s).
+ * Door swing + wheel/dial + bolts + icon settle.
+ * No scanline / pulse ring / stage border / page background.
+ */
+
+.hero-vault {
+  position: relative;
+  width: 100%;
+  isolation: isolate;
+}
+
+.hero-vault-stage {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  aspect-ratio: 16 / 9;
+  max-height: min(480px, 56vh);
+}
+
+.hero-vault-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-vault-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.7rem;
+  z-index: 2;
+  margin: 0;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+/* Door — open while icons enter, then swing shut from left hinge */
+.hero-vault-door {
+  transform-box: view-box;
+  transform-origin: 360px 270px;
+  animation: hero-vault-door-swing 9s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes hero-vault-door-swing {
+  /* OPEN — chamber visible, icons enter */
+  0%,
+  24% {
+    transform: scaleX(0.05);
+  }
+  /* CLOSE — seals over secrets */
+  34% {
+    transform: scaleX(1);
+  }
+  /* HOLD locked */
+  82% {
+    transform: scaleX(1);
+  }
+  /* OPEN again for next loop */
+  100% {
+    transform: scaleX(0.05);
+  }
+}
+
+/* Spoke wheel on door — spins to lock AFTER door is shut */
+.hero-vault-wheel {
+  transform-box: view-box;
+  transform-origin: 480px 278px;
+  animation: hero-vault-wheel-spin 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes hero-vault-wheel-spin {
+  0%,
+  34% {
+    transform: rotate(0deg);
+  }
+  46% {
+    transform: rotate(420deg);
+  }
+  80% {
+    transform: rotate(420deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Combination dial — spins with the lock */
+.hero-vault-dial {
+  transform-box: view-box;
+  transform-origin: 480px 222px;
+  animation: hero-vault-dial-spin 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes hero-vault-dial-spin {
+  0%,
+  34% {
+    transform: rotate(0deg);
+  }
+  44% {
+    transform: rotate(720deg);
+  }
+  80% {
+    transform: rotate(720deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Outer bolt ring — turns like a locking gear */
+.hero-vault-bolt-ring {
+  transform-box: view-box;
+  transform-origin: 480px 270px;
+  animation: hero-vault-bolt-ring 9s cubic-bezier(0.45, 0.05, 0.25, 1)
+    infinite;
+}
+
+@keyframes hero-vault-bolt-ring {
+  0%,
+  34% {
+    transform: rotate(0deg);
+  }
+  46% {
+    transform: rotate(45deg);
+  }
+  80% {
+    transform: rotate(45deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Bolts fire outward into the frame after the gear turns */
+.hero-vault-bolt-arm {
+  animation: hero-vault-bolt-extend 9s cubic-bezier(0.34, 1.4, 0.64, 1)
+    infinite;
+}
+
+@keyframes hero-vault-bolt-extend {
+  0%,
+  36% {
+    transform: translateY(0);
+  }
+  42%,
+  80% {
+    transform: translateY(-12px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* Icons: appear outside → fly into open chamber → stay until door covers */
+.hero-vault-chip {
+  opacity: 0;
+}
+
+.hero-vault-chip-1 {
+  animation: hero-vault-fly-1 9s cubic-bezier(0.45, 0.05, 0.25, 1) infinite;
+}
+.hero-vault-chip-2 {
+  animation: hero-vault-fly-2 9s cubic-bezier(0.45, 0.05, 0.25, 1) infinite;
+  animation-delay: 0.12s;
+}
+.hero-vault-chip-3 {
+  animation: hero-vault-fly-3 9s cubic-bezier(0.45, 0.05, 0.25, 1) infinite;
+  animation-delay: 0.24s;
+}
+.hero-vault-chip-4 {
+  animation: hero-vault-fly-4 9s cubic-bezier(0.45, 0.05, 0.25, 1) infinite;
+  animation-delay: 0.06s;
+}
+.hero-vault-chip-5 {
+  animation: hero-vault-fly-5 9s cubic-bezier(0.45, 0.05, 0.25, 1) infinite;
+  animation-delay: 0.3s;
+}
+.hero-vault-chip-6 {
+  animation: hero-vault-fly-6 9s cubic-bezier(0.45, 0.05, 0.25, 1) infinite;
+  animation-delay: 0.18s;
+}
+.hero-vault-chip-7 {
+  animation: hero-vault-fly-7 9s cubic-bezier(0.45, 0.05, 0.25, 1) infinite;
+  animation-delay: 0.28s;
+}
+
+@keyframes hero-vault-fly-1 {
+  0%,
+  2% {
+    transform: translate(150px, 110px) scale(1);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  16% {
+    transform: translate(425px, 225px) scale(0.55);
+    opacity: 1;
+  }
+  28% {
+    transform: translate(425px, 225px) scale(0.5);
+    opacity: 1;
+  }
+  32%,
+  100% {
+    transform: translate(425px, 225px) scale(0.45);
+    opacity: 0;
+  }
+}
+
+@keyframes hero-vault-fly-2 {
+  0%,
+  2% {
+    transform: translate(806px, 116px) scale(1);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  16% {
+    transform: translate(530px, 220px) scale(0.55);
+    opacity: 1;
+  }
+  28% {
+    transform: translate(530px, 220px) scale(0.5);
+    opacity: 1;
+  }
+  32%,
+  100% {
+    transform: translate(530px, 220px) scale(0.45);
+    opacity: 0;
+  }
+}
+
+@keyframes hero-vault-fly-3 {
+  0%,
+  2% {
+    transform: translate(134px, 424px) scale(1);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  16% {
+    transform: translate(410px, 280px) scale(0.55);
+    opacity: 1;
+  }
+  28% {
+    transform: translate(410px, 280px) scale(0.5);
+    opacity: 1;
+  }
+  32%,
+  100% {
+    transform: translate(410px, 280px) scale(0.45);
+    opacity: 0;
+  }
+}
+
+@keyframes hero-vault-fly-4 {
+  0%,
+  2% {
+    transform: translate(818px, 418px) scale(1);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  16% {
+    transform: translate(545px, 285px) scale(0.55);
+    opacity: 1;
+  }
+  28% {
+    transform: translate(545px, 285px) scale(0.5);
+    opacity: 1;
+  }
+  32%,
+  100% {
+    transform: translate(545px, 285px) scale(0.45);
+    opacity: 0;
+  }
+}
+
+@keyframes hero-vault-fly-5 {
+  0%,
+  2% {
+    transform: translate(468px, 52px) scale(1);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  16% {
+    transform: translate(480px, 200px) scale(0.55);
+    opacity: 1;
+  }
+  28% {
+    transform: translate(480px, 200px) scale(0.5);
+    opacity: 1;
+  }
+  32%,
+  100% {
+    transform: translate(480px, 200px) scale(0.45);
+    opacity: 0;
+  }
+}
+
+@keyframes hero-vault-fly-6 {
+  0%,
+  2% {
+    transform: translate(465px, 486px) scale(1);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  16% {
+    transform: translate(465px, 325px) scale(0.55);
+    opacity: 1;
+  }
+  28% {
+    transform: translate(465px, 325px) scale(0.5);
+    opacity: 1;
+  }
+  32%,
+  100% {
+    transform: translate(465px, 325px) scale(0.45);
+    opacity: 0;
+  }
+}
+
+@keyframes hero-vault-fly-7 {
+  0%,
+  2% {
+    transform: translate(786px, 270px) scale(1);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  16% {
+    transform: translate(515px, 300px) scale(0.55);
+    opacity: 1;
+  }
+  28% {
+    transform: translate(515px, 300px) scale(0.5);
+    opacity: 1;
+  }
+  32%,
+  100% {
+    transform: translate(515px, 300px) scale(0.45);
+    opacity: 0;
+  }
+}
+
+/* Secured aura */
+.hero-vault-glow-ring {
+  animation: hero-vault-glow-in 9s ease-in-out infinite;
+  filter: blur(7px);
+}
+
+@keyframes hero-vault-glow-in {
+  0%,
+  40% {
+    opacity: 0;
+  }
+  48% {
+    opacity: 0.85;
+  }
+  78% {
+    opacity: 0.85;
+  }
+  86%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.hero-vault-breathe {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: hero-vault-breathe 2.6s ease-in-out infinite;
+}
+
+@keyframes hero-vault-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.035);
+  }
+}
+
+.hero-vault-bezel-stroke {
+  animation: hero-vault-bezel 9s ease-in-out infinite;
+}
+
+@keyframes hero-vault-bezel {
+  0%,
+  40% {
+    stroke: #3a4f63;
+  }
+  50%,
+  78% {
+    stroke: #2aeb7c;
+  }
+  90%,
+  100% {
+    stroke: #3a4f63;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-vault-door,
+  .hero-vault-wheel,
+  .hero-vault-dial,
+  .hero-vault-bolt-ring,
+  .hero-vault-bolt-arm,
+  .hero-vault-chip-1,
+  .hero-vault-chip-2,
+  .hero-vault-chip-3,
+  .hero-vault-chip-4,
+  .hero-vault-chip-5,
+  .hero-vault-chip-6,
+  .hero-vault-chip-7,
+  .hero-vault-glow-ring,
+  .hero-vault-breathe,
+  .hero-vault-bezel-stroke {
+    animation: none !important;
+  }
+
+  .hero-vault-door {
+    transform: scaleX(1);
+  }
+
+  .hero-vault-glow-ring {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .hero-vault-chip {
+    display: none;
+  }
+
+  .hero-vault-bezel-stroke {
+    stroke: #2aeb7c;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-vault-stage {
+    aspect-ratio: 4 / 3;
+    max-height: none;
+  }
+
+  .hero-vault-caption {
+    font-size: 0.65rem;
+  }
+}

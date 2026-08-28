@@ -1,0 +1,123 @@
+/**
+ * Secrela design tokens — single source of truth for visual values.
+ * Tailwind v4 maps `--color-*`, `--radius-*`, `--shadow-*`, `--font-*` into utilities.
+ *
+ * Do not hardcode hex values in components when a token exists.
+ * Canonical docs: /docs/design-system/
+ */
+
+@theme inline {
+  /* Color — backgrounds (Secrela navy) */
+  --color-background-primary: #030a11;
+  --color-background-secondary: #050d14;
+  --color-surface-card: #0a1219;
+  --color-surface-elevated: #0e1822;
+
+  /* Color — borders */
+  --color-border-subtle: #1d3040;
+  --color-border-default: #243848;
+
+  /* Color — text */
+  --color-text-primary: #f4f7fa;
+  --color-text-secondary: #9aa7b5;
+  --color-text-muted: #667482;
+  --color-text-disabled: #4a5560;
+
+  /* Color — brand (Secrela emerald) */
+  --color-brand-primary: #19e06f;
+  --color-brand-primary-hover: #2aeb7c;
+  --color-brand-primary-dark: #0faa52;
+  --color-brand-on-primary: #030a11;
+
+  /* Color — semantic */
+  --color-success: #19e06f;
+  --color-warning: #f5b82e;
+  --color-danger: #ff4d4d;
+  --color-info: #3b9cff;
+  --color-purple: #8b6cff;
+
+  /* Typography */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+
+  --text-display: 3.5rem;
+  --text-display--line-height: 1.1;
+  --text-display--font-weight: 700;
+
+  --text-hero: 3rem;
+  --text-hero--line-height: 1.15;
+  --text-hero--font-weight: 700;
+
+  --text-page: 1.875rem;
+  --text-page--line-height: 1.25;
+  --text-page--font-weight: 600;
+
+  --text-section: 1.5rem;
+  --text-section--line-height: 1.3;
+  --text-section--font-weight: 600;
+
+  --text-card: 1.125rem;
+  --text-card--line-height: 1.4;
+  --text-card--font-weight: 600;
+
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.55;
+  --text-body--font-weight: 400;
+
+  --text-small: 0.8125rem;
+  --text-small--line-height: 1.45;
+  --text-small--font-weight: 400;
+
+  --text-label: 0.75rem;
+  --text-label--line-height: 1.3;
+  --text-label--font-weight: 500;
+
+  /* Radius */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 9999px;
+
+  /* Shadows — restrained; glow is an accent, not a default */
+  --shadow-card: 0 1px 0 rgb(0 0 0 / 0.35);
+  --shadow-elevated: 0 12px 40px rgb(0 0 0 / 0.45);
+  --shadow-focus: 0 0 0 3px rgb(25 224 111 / 0.22);
+  --shadow-glow-green: 0 0 24px rgb(25 224 111 / 0.12);
+  --shadow-glow-green-strong: 0 0 40px rgb(25 224 111 / 0.2);
+  --shadow-glow-purple: 0 0 28px rgb(139 108 255 / 0.08);
+
+  /* Motion */
+  --ease-sv: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-duration-fast: 150ms;
+  --transition-duration-base: 200ms;
+  --transition-duration-slow: 300ms;
+
+  /* Z-index */
+  --z-index-base: 0;
+  --z-index-dropdown: 40;
+  --z-index-sticky: 50;
+  --z-index-modal: 80;
+  --z-index-toast: 90;
+  --z-index-overlay-max: 100;
+}
+
+:root {
+  --sv-glow-green: rgb(25 224 111 / 0.1);
+  --sv-grid-line: rgb(29 48 64 / 0.55);
+  --sv-input-height: 50px;
+  --ease-sv: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-duration-fast: 150ms;
+  --transition-duration-base: 200ms;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}

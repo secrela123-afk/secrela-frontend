@@ -1,0 +1,1140 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* Landing social marquee — seamless conveyor (two equal halves) */
+@theme inline {
+  --animate-sv-marquee: sv-marquee 72s linear infinite;
+  --animate-sv-rise: sv-rise 650ms var(--ease-sv) both;
+  --animate-sv-toast-in: sv-toast-in 0.35s ease-out both;
+}
+
+@keyframes sv-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes sv-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Auth form card: rise from below on page enter / navigation */
+@keyframes auth-form-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.auth-form-enter {
+  width: 100%;
+  max-width: inherit;
+  animation: auth-form-enter 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-form-enter {
+    animation: none;
+  }
+}
+
+@keyframes sv-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Auth pages: lock document scroll while auth chrome is mounted */
+html:has(.auth-page),
+html:has(.auth-page) body {
+  height: 100%;
+  overflow: hidden;
+}
+
+html:has(.auth-page) body {
+  min-height: 0;
+}
+
+/* Landing hero — soft expanding protection rings (atmosphere only) */
+.hero-protection-rings {
+  background:
+    radial-gradient(
+      circle at 72% 42%,
+      transparent 18%,
+      color-mix(in srgb, var(--color-brand-primary) 14%, transparent) 19%,
+      transparent 20%
+    ),
+    radial-gradient(
+      circle at 72% 42%,
+      transparent 28%,
+      color-mix(in srgb, var(--color-brand-primary) 10%, transparent) 29%,
+      transparent 31%
+    ),
+    radial-gradient(
+      circle at 72% 42%,
+      transparent 40%,
+      color-mix(in srgb, var(--color-brand-primary) 7%, transparent) 41%,
+      transparent 44%
+    );
+  animation: sv-protection-pulse 9s ease-in-out infinite;
+}
+
+@keyframes sv-protection-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.04);
+  }
+}
+
+/* Landing section — chaos → Secrela spider hub → control */
+.problems-gw-line {
+  opacity: 0.85;
+}
+
+.problems-hub-bridge[data-active="true"] .problems-gw-line--in,
+.problems-flow[data-active="true"] .problems-gw-line--in {
+  animation: problems-gw-dash 1.8s linear infinite;
+}
+
+.problems-hub-bridge[data-active="true"] .problems-gw-line--out,
+.problems-flow[data-active="true"] .problems-gw-line--out {
+  animation: problems-gw-dash 1.8s linear infinite reverse;
+}
+
+@keyframes problems-gw-dash {
+  to {
+    stroke-dashoffset: -48;
+  }
+}
+
+.problems-hub-wave {
+  fill: none;
+  stroke-dasharray: 14 110;
+  opacity: 0;
+}
+
+.problems-hub-bridge[data-active="true"] .problems-hub-wave--in,
+.problems-flow[data-active="true"] .problems-hub-bridge .problems-hub-wave--in {
+  opacity: 0.95;
+  animation: problems-hub-wave-in 2.6s linear infinite;
+}
+
+.problems-hub-bridge[data-active="true"] .problems-hub-wave--out,
+.problems-flow[data-active="true"] .problems-hub-bridge .problems-hub-wave--out {
+  opacity: 0.9;
+  animation: problems-hub-wave-out 2.6s linear infinite;
+}
+
+@keyframes problems-hub-wave-in {
+  from {
+    stroke-dashoffset: 124;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes problems-hub-wave-out {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -124;
+  }
+}
+
+.problems-hub-bead,
+.problems-hub-focus {
+  opacity: 0.85;
+}
+
+.problems-hub-bridge[data-active="true"] .problems-hub-bead--red,
+.problems-hub-bridge[data-active="true"] .problems-hub-bead--green,
+.problems-hub-bridge[data-active="true"] .problems-hub-focus,
+.problems-flow[data-active="true"] .problems-hub-bead--red,
+.problems-flow[data-active="true"] .problems-hub-bead--green,
+.problems-flow[data-active="true"] .problems-hub-focus {
+  animation: problems-hub-bead-pulse 2.1s ease-in-out infinite;
+}
+
+@keyframes problems-hub-bead-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.problems-hub-core .problems-hub-ring {
+  animation: none;
+}
+
+.problems-hub-bridge[data-active="true"] .problems-hub-ring,
+.problems-flow[data-active="true"] .problems-hub-ring {
+  animation: problems-hub-ring 3.6s ease-in-out infinite;
+}
+
+.problems-stream {
+  stroke-dasharray: 10 18;
+  opacity: 0.35;
+}
+
+.problems-flow[data-active="true"] .problems-stream--danger {
+  animation: problems-flow-red 2.8s linear infinite;
+}
+
+.problems-flow[data-active="true"] .problems-stream--safe {
+  animation: problems-flow-green 2.8s linear infinite;
+}
+
+@keyframes problems-flow-red {
+  from {
+    stroke-dashoffset: 84;
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 0.95;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 0.35;
+  }
+}
+
+@keyframes problems-flow-green {
+  from {
+    stroke-dashoffset: 0;
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: -84;
+    opacity: 0.35;
+  }
+}
+
+.problems-rail--danger {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-danger) 55%, transparent),
+    transparent
+  );
+}
+
+.problems-rail--safe {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-brand-primary) 55%, transparent),
+    transparent
+  );
+}
+
+.problems-node--danger {
+  background: var(--color-danger);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-danger) 70%, transparent);
+}
+
+.problems-node--safe {
+  background: var(--color-brand-primary);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-brand-primary) 70%, transparent);
+}
+
+.problems-flow[data-active="true"] .problems-node--danger,
+.problems-flow[data-active="true"] .problems-node--safe {
+  animation: problems-node-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes problems-node-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.25);
+    filter: brightness(1.25);
+  }
+}
+
+.problems-hub-ring {
+  animation: none;
+}
+
+.problems-flow[data-active="true"] .problems-hub-ring {
+  animation: problems-hub-ring 3.6s ease-in-out infinite;
+}
+
+@keyframes problems-hub-ring {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.06);
+  }
+}
+
+.problems-card {
+  opacity: 1;
+  transform: none;
+}
+
+.problems-flow[data-active="true"] .problems-card {
+  animation: problems-card-in 700ms var(--ease-sv) both;
+}
+
+@keyframes problems-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Landing access flow — synced bead + icon flash (3.6s loop) */
+.access-flow {
+  --access-flow-duration: 3.6s;
+  --access-flow-segments: 6;
+}
+
+.access-flow-rail {
+  overflow: visible;
+}
+
+.access-flow-rail-line {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.access-flow-rail-line::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-brand-primary) 38%, transparent) 0 6px,
+    transparent 6px 13px
+  );
+  opacity: 0.5;
+}
+
+.access-flow-rail-bead {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  z-index: 1;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-brand-primary);
+  box-shadow:
+    0 0 8px rgb(25 224 111 / 0.95),
+    0 0 18px rgb(25 224 111 / 0.55);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
+.access-flow[data-active="true"] .access-flow-rail-bead {
+  opacity: 1;
+  animation: access-flow-bead-walk var(--access-flow-duration) linear infinite;
+}
+
+@keyframes access-flow-bead-walk {
+  from {
+    left: 0%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+.access-flow-step-ring {
+  position: relative;
+  z-index: 2;
+  box-shadow:
+    0 0 0 5px var(--color-background-primary),
+    0 0 16px rgb(25 224 111 / 0.12);
+  border-color: color-mix(in srgb, var(--color-brand-primary) 45%, transparent);
+  transition: none;
+}
+
+.access-flow[data-active="true"] .access-flow-step-ring {
+  animation: access-flow-step-flash var(--access-flow-duration) linear infinite;
+  animation-delay: calc(
+    var(--access-step-i, 0) * var(--access-flow-duration) / var(--access-flow-segments)
+  );
+}
+
+@keyframes access-flow-step-flash {
+  0% {
+    box-shadow:
+      0 0 0 5px var(--color-background-primary),
+      0 0 32px rgb(25 224 111 / 0.55);
+    border-color: var(--color-brand-primary);
+    transform: scale(1.06);
+  }
+  7%,
+  100% {
+    box-shadow:
+      0 0 0 5px var(--color-background-primary),
+      0 0 16px rgb(25 224 111 / 0.12);
+    border-color: color-mix(in srgb, var(--color-brand-primary) 45%, transparent);
+    transform: scale(1);
+  }
+}
+
+.access-flow-record {
+  opacity: 0.92;
+  transform: translateY(6px);
+}
+
+.access-flow[data-active="true"] .access-flow-record {
+  animation: access-flow-record-in 700ms var(--ease-sv) 0.35s both;
+}
+
+@keyframes access-flow-record-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.access-flow-granted {
+  box-shadow: 0 0 14px rgb(25 224 111 / 0.12);
+}
+
+.access-flow[data-active="true"] .access-flow-granted {
+  animation: access-flow-granted-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes access-flow-granted-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgb(25 224 111 / 0.1);
+  }
+  50% {
+    box-shadow: 0 0 22px rgb(25 224 111 / 0.28);
+  }
+}
+
+/* How it works — static curved connector (section 5) */
+.hiw-badge-dot {
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: var(--color-brand-primary);
+  box-shadow: 0 0 6px rgb(25 224 111 / 0.55);
+}
+
+.hiw-hub-ring--outer {
+  box-shadow: 0 0 20px rgb(25 224 111 / 0.12);
+}
+
+.hiw-hub-core {
+  box-shadow:
+    0 0 0 4px var(--color-background-primary),
+    0 0 16px rgb(25 224 111 / 0.18);
+}
+
+.hiw-hub--featured .hiw-hub-ring--outer {
+  border-color: color-mix(in srgb, var(--color-brand-primary) 45%, transparent);
+  box-shadow: 0 0 28px rgb(25 224 111 / 0.22);
+}
+
+.hiw-hub--featured .hiw-hub-ring--inner {
+  border-color: color-mix(in srgb, var(--color-brand-primary) 55%, transparent);
+  box-shadow: 0 0 20px rgb(25 224 111 / 0.28);
+}
+
+.hiw-hub--featured .hiw-hub-core {
+  box-shadow:
+    0 0 0 4px var(--color-background-primary),
+    0 0 22px rgb(25 224 111 / 0.32);
+}
+
+.hiw-projection {
+  z-index: 0;
+}
+
+.hiw-card {
+  border-radius: 1.5rem;
+  isolation: isolate;
+}
+
+/* Side cards: vertical gleam on left/right edges */
+.hiw-side-sheen-beam {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgb(25 224 111 / 0.25) 14%,
+    rgb(155 255 192 / 0.95) 46%,
+    rgb(25 224 111 / 0.9) 58%,
+    rgb(25 224 111 / 0.25) 86%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 10px rgb(25 224 111 / 0.65),
+    0 0 18px rgb(25 224 111 / 0.3);
+  animation: hiw-side-sheen 6.5s ease-in-out infinite;
+  opacity: 0;
+}
+
+.hiw-side-sheen-beam--left {
+  left: 0;
+}
+
+.hiw-side-sheen-beam--right {
+  right: 0;
+}
+
+@keyframes hiw-side-sheen {
+  0% {
+    top: 1.35rem;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    top: calc(100% - 1.35rem - 6rem);
+    opacity: 0;
+  }
+}
+
+.hiw-card--standard {
+  background: color-mix(in srgb, var(--color-surface-card) 82%, transparent);
+  box-shadow:
+    inset 0 0 0 1px rgb(25 224 111 / 0.22),
+    0 0 24px rgb(25 224 111 / 0.08),
+    0 0 48px rgb(25 224 111 / 0.04);
+}
+
+.hiw-card--featured {
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 50% 100%,
+      rgb(25 224 111 / 0.07),
+      transparent 68%
+    ),
+    color-mix(in srgb, var(--color-surface-card) 92%, transparent);
+  box-shadow:
+    inset 0 0 0 1px rgb(25 224 111 / 0.62),
+    inset 0 1px 0 rgb(25 224 111 / 0.18),
+    inset 0 -18px 28px rgb(25 224 111 / 0.04),
+    0 0 36px rgb(25 224 111 / 0.2),
+    0 0 72px rgb(25 224 111 / 0.1);
+}
+
+.hiw-card-top-edge {
+  position: absolute;
+  top: 0;
+  height: 1px;
+  /* leave rounded corners clear so edges don't stick out */
+  width: calc(50% - 2.75rem - 1.35rem);
+}
+
+.hiw-card-top-edge--left {
+  left: 1.35rem;
+}
+
+.hiw-card-top-edge--right {
+  right: 1.35rem;
+}
+
+.hiw-card-top-edge--left.hiw-card-top-edge--standard {
+  background: linear-gradient(
+    90deg,
+    rgb(25 224 111 / 0.38),
+    rgb(25 224 111 / 0.16) 78%,
+    transparent
+  );
+  box-shadow: 0 0 10px rgb(25 224 111 / 0.14);
+}
+
+.hiw-card-top-edge--right.hiw-card-top-edge--standard {
+  background: linear-gradient(
+    270deg,
+    rgb(25 224 111 / 0.38),
+    rgb(25 224 111 / 0.16) 78%,
+    transparent
+  );
+  box-shadow: 0 0 10px rgb(25 224 111 / 0.14);
+}
+
+.hiw-card-top-edge--left.hiw-card-top-edge--featured {
+  background: linear-gradient(
+    90deg,
+    rgb(25 224 111 / 0.9),
+    rgb(25 224 111 / 0.42) 78%,
+    transparent
+  );
+  box-shadow: 0 0 16px rgb(25 224 111 / 0.32);
+}
+
+.hiw-card-top-edge--right.hiw-card-top-edge--featured {
+  background: linear-gradient(
+    270deg,
+    rgb(25 224 111 / 0.9),
+    rgb(25 224 111 / 0.42) 78%,
+    transparent
+  );
+  box-shadow: 0 0 16px rgb(25 224 111 / 0.32);
+}
+
+.hiw-card-base-glow {
+  box-shadow: 0 1px 12px rgb(25 224 111 / 0.2);
+}
+
+/* Middle card — inverted holographic funnel (wide at card → tip into ripples) */
+.hiw-feat-beam {
+  background: linear-gradient(
+    180deg,
+    rgb(25 224 111 / 0.34) 0%,
+    rgb(25 224 111 / 0.16) 42%,
+    rgb(25 224 111 / 0.06) 78%,
+    transparent 100%
+  );
+  clip-path: polygon(0 0, 100% 0, 58% 100%, 42% 100%);
+  filter: blur(0.6px);
+}
+
+.hiw-feat-beam-core {
+  background: linear-gradient(
+    180deg,
+    rgb(25 224 111 / 0.55) 0%,
+    rgb(25 224 111 / 0.28) 36%,
+    rgb(25 224 111 / 0.1) 72%,
+    transparent 100%
+  );
+  clip-path: polygon(8% 0, 92% 0, 56% 100%, 44% 100%);
+  filter: blur(1px);
+}
+
+.hiw-feat-particles {
+  clip-path: polygon(2% 0, 98% 0, 58% 100%, 42% 100%);
+  mask-image: linear-gradient(180deg, rgb(0 0 0 / 0.8), rgb(0 0 0 / 0.35) 65%, transparent);
+  opacity: 0.85;
+}
+
+.hiw-feat-particles-rain {
+  background-image:
+    radial-gradient(circle, rgb(25 224 111 / 0.85) 0.55px, transparent 0.7px),
+    radial-gradient(circle, rgb(155 255 192 / 0.45) 0.4px, transparent 0.55px);
+  background-size: 7px 9px, 11px 12px;
+  background-repeat: repeat;
+  will-change: transform;
+}
+
+.hiw-feat-particles-rain--a {
+  background-position: 0 0, 3px 5px;
+  animation: hiw-feat-rain-fall 9s linear infinite;
+}
+
+.hiw-feat-particles-rain--b {
+  background-position: 5px 2px, 8px 7px;
+  opacity: 0.55;
+  animation: hiw-feat-rain-fall 13s linear infinite;
+  animation-delay: -4s;
+}
+
+@keyframes hiw-feat-rain-fall {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+.hiw-feat-rim {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(25 224 111 / 0.55) 18%,
+    rgb(25 224 111 / 0.95) 50%,
+    rgb(25 224 111 / 0.55) 82%,
+    transparent
+  );
+  box-shadow:
+    0 0 12px rgb(25 224 111 / 0.55),
+    0 0 28px rgb(25 224 111 / 0.28);
+}
+
+.hiw-feat-rim-glow {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgb(25 224 111 / 0.7),
+    rgb(25 224 111 / 0.2) 52%,
+    transparent 76%
+  );
+  filter: blur(2px);
+}
+
+.hiw-feat-tip {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgb(25 224 111 / 0.9),
+    rgb(25 224 111 / 0.3) 50%,
+    transparent 75%
+  );
+  box-shadow: 0 0 16px rgb(25 224 111 / 0.45);
+  filter: blur(1px);
+}
+
+.hiw-feat-ripple {
+  border: 1px solid rgb(25 224 111 / 0.26);
+  box-shadow: 0 0 10px rgb(25 224 111 / 0.1);
+  background: transparent;
+}
+
+.hiw-feat-ripple--1 {
+  border-color: rgb(25 224 111 / 0.55);
+  box-shadow:
+    0 0 14px rgb(25 224 111 / 0.3),
+    inset 0 0 8px rgb(25 224 111 / 0.08);
+  opacity: 0.95;
+}
+
+.hiw-feat-ripple--2 {
+  border-color: rgb(25 224 111 / 0.36);
+  opacity: 0.68;
+}
+
+.hiw-feat-ripple--3 {
+  border-color: rgb(25 224 111 / 0.24);
+  opacity: 0.45;
+}
+
+.hiw-feat-ripple--4 {
+  border-color: rgb(25 224 111 / 0.14);
+  opacity: 0.3;
+}
+
+.hiw-feat-floor {
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgb(25 224 111 / 0.22),
+    rgb(25 224 111 / 0.06) 50%,
+    transparent 74%
+  );
+  filter: blur(10px);
+}
+
+/* Side-card floor: horizontal contact glow + flat concentric ripples */
+.hiw-soft-base-glow {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(25 224 111 / 0.55) 35%,
+    rgb(25 224 111 / 0.9) 50%,
+    rgb(25 224 111 / 0.55) 65%,
+    transparent
+  );
+  box-shadow:
+    0 0 10px rgb(25 224 111 / 0.45),
+    0 0 22px rgb(25 224 111 / 0.22);
+}
+
+.hiw-soft-contact {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgb(25 224 111 / 0.95),
+    rgb(25 224 111 / 0.35) 48%,
+    transparent 74%
+  );
+  filter: blur(1.5px);
+  box-shadow: 0 0 18px rgb(25 224 111 / 0.5);
+}
+
+.hiw-soft-bloom {
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgb(25 224 111 / 0.28),
+    rgb(25 224 111 / 0.08) 48%,
+    transparent 74%
+  );
+  filter: blur(8px);
+}
+
+.hiw-soft-ripple {
+  border: 1px solid rgb(25 224 111 / 0.28);
+  box-shadow: 0 0 10px rgb(25 224 111 / 0.12);
+  background: transparent;
+}
+
+.hiw-soft-ripple--1 {
+  border-color: rgb(25 224 111 / 0.5);
+  box-shadow:
+    0 0 12px rgb(25 224 111 / 0.28),
+    inset 0 0 8px rgb(25 224 111 / 0.08);
+  opacity: 0.9;
+}
+
+.hiw-soft-ripple--2 {
+  border-color: rgb(25 224 111 / 0.34);
+  opacity: 0.65;
+}
+
+.hiw-soft-ripple--3 {
+  border-color: rgb(25 224 111 / 0.22);
+  opacity: 0.42;
+}
+
+.hiw-soft-ripple--4 {
+  border-color: rgb(25 224 111 / 0.14);
+  opacity: 0.28;
+}
+
+/* Anchor navigation — smooth scroll (sections offset via scroll-mt-24) */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Primary green CTA — periodic white shine sweeping across the button */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: -45%;
+  width: 34%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgb(255 255 255 / 0.16) 28%,
+    rgb(255 255 255 / 0.5) 50%,
+    rgb(255 255 255 / 0.16) 72%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  animation: btn-shine-sweep 3.4s ease-in-out infinite;
+}
+
+@keyframes btn-shine-sweep {
+  0% {
+    left: -45%;
+  }
+  /* sweep across, then rest off-screen until the next cycle */
+  46%,
+  100% {
+    left: 130%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-shine::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* Landing — global light scroll reveal (see ScrollReveal.tsx) */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.65s ease,
+    transform 0.65s ease;
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+[data-reveal="visible"] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Section 6 — Security hub diagram (nodes + connections) */
+.sec-hub-ring-solid {
+  stroke: rgb(25 224 111 / 0.55);
+  stroke-width: 1.35;
+  filter: drop-shadow(0 0 5px rgb(25 224 111 / 0.25));
+}
+
+.sec-hub-ring-dotted {
+  stroke: rgb(25 224 111 / 0.38);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+}
+
+.sec-hub-ring-faint {
+  stroke: rgb(25 224 111 / 0.18);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.sec-hub-arc {
+  stroke: rgb(25 224 111 / 0.5);
+  stroke-width: 1.2;
+  fill: none;
+  filter: drop-shadow(0 0 3px rgb(25 224 111 / 0.25));
+}
+
+.sec-hub-line {
+  stroke: rgb(25 224 111 / 0.62);
+  stroke-width: 1.35;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px rgb(25 224 111 / 0.35));
+  /* draw-in (pathLength=1 normalizes every path) */
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 0.9s ease;
+}
+
+.sec-section[data-active="true"] .sec-hub-line {
+  stroke-dashoffset: 0;
+}
+
+/* Data pulse traveling along a connector */
+.sec-hub-pulse {
+  fill: #baffd6;
+  filter: drop-shadow(0 0 6px rgb(25 224 111 / 0.95));
+}
+
+/* Slow orbit rotation around hub center */
+.sec-hub-orbit--slow {
+  animation: sec-orbit-spin 46s linear infinite;
+}
+
+.sec-hub-orbit--reverse {
+  animation: sec-orbit-spin 32s linear infinite reverse;
+}
+
+@keyframes sec-orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Cards stagger in when the section activates */
+.sec-card {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.sec-section[data-active="true"] .sec-card {
+  opacity: 1;
+  transform: none;
+}
+
+/* Hex core idle motion */
+.sec-hex-float {
+  animation: sec-hex-float 7s ease-in-out infinite;
+}
+
+@keyframes sec-hex-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Soft halo behind every node */
+.sec-hub-node-halo {
+  fill: rgb(25 224 111 / 0.22);
+  filter: blur(2.2px);
+}
+
+/* Solid node on the ring track */
+.sec-hub-node-solid {
+  fill: #19e06f;
+  filter: drop-shadow(0 0 7px rgb(25 224 111 / 0.85));
+}
+
+/* Hollow node at card tip — transparent fill so the line meets the ring cleanly */
+.sec-hub-node-hollow {
+  fill: rgb(3 10 17 / 0.92);
+  stroke: #19e06f;
+  stroke-width: 1.85;
+  filter: drop-shadow(0 0 6px rgb(25 224 111 / 0.8));
+}
+
+.sec-hex-glow {
+  background: radial-gradient(
+    circle,
+    rgb(25 224 111 / 0.28),
+    rgb(25 224 111 / 0.08) 48%,
+    transparent 72%
+  );
+  filter: blur(8px);
+  animation: sec-hex-glow-pulse 5.5s ease-in-out infinite;
+}
+
+@keyframes sec-hex-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sv-rise,
+  .animate-sv-marquee {
+    animation: none;
+  }
+
+  .sec-hub-orbit--slow,
+  .sec-hub-orbit--reverse,
+  .sec-hex-float,
+  .sec-hex-glow {
+    animation: none;
+  }
+
+  .sec-hub-line {
+    transition: none;
+    stroke-dashoffset: 0;
+  }
+
+  .sec-card {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .hiw-side-sheen-beam {
+    animation: none;
+    opacity: 0;
+  }
+
+  .hiw-feat-particles-rain {
+    animation: none;
+  }
+
+  .hero-protection-rings {
+    animation: none;
+    opacity: 0.45;
+  }
+
+  .problems-flow[data-active="true"] .problems-stream--danger,
+  .problems-flow[data-active="true"] .problems-stream--safe,
+  .problems-flow[data-active="true"] .problems-node--danger,
+  .problems-flow[data-active="true"] .problems-node--safe,
+  .problems-flow[data-active="true"] .problems-hub-ring,
+  .problems-flow[data-active="true"] .problems-hub-img,
+  .problems-flow[data-active="true"] .problems-hub-wave--in,
+  .problems-flow[data-active="true"] .problems-hub-wave--out,
+  .problems-flow[data-active="true"] .problems-hub-bead--red,
+  .problems-flow[data-active="true"] .problems-hub-bead--green,
+  .problems-flow[data-active="true"] .problems-hub-focus,
+  .problems-hub-bridge[data-active="true"] .problems-hub-wave--in,
+  .problems-hub-bridge[data-active="true"] .problems-hub-wave--out,
+  .problems-hub-bridge[data-active="true"] .problems-gw-line--in,
+  .problems-hub-bridge[data-active="true"] .problems-gw-line--out,
+  .problems-hub-bridge[data-active="true"] .problems-hub-bead--red,
+  .problems-hub-bridge[data-active="true"] .problems-hub-bead--green,
+  .problems-hub-bridge[data-active="true"] .problems-hub-focus,
+  .problems-hub-bridge[data-active="true"] .problems-hub-ring,
+  .problems-flow[data-active="true"] .problems-card {
+    animation: none;
+  }
+
+  .problems-stream {
+    opacity: 0.55;
+    stroke-dasharray: none;
+  }
+
+  .problems-hub-wave {
+    opacity: 0;
+  }
+
+  .access-flow[data-active="true"] .access-flow-rail-bead,
+  .access-flow[data-active="true"] .access-flow-step-ring,
+  .access-flow[data-active="true"] .access-flow-record,
+  .access-flow[data-active="true"] .access-flow-granted {
+    animation: none;
+  }
+
+  .access-flow-rail-bead {
+    opacity: 0.7;
+    left: 0;
+  }
+
+  .access-flow-step-ring {
+    box-shadow:
+      0 0 0 5px var(--color-background-primary),
+      0 0 24px rgb(25 224 111 / 0.35);
+    border-color: var(--color-brand-primary);
+  }
+
+  .access-flow-record {
+    opacity: 1;
+    transform: none;
+  }
+}

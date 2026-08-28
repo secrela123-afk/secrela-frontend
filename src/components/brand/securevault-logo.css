@@ -1,0 +1,154 @@
+/**
+ * Secrela mark motion — geometric S hex logo.
+ * Animate opacity / transform only. Honor prefers-reduced-motion.
+ */
+
+.sv-logo {
+  --sv-logo-size: 40px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sv-logo-size);
+  height: var(--sv-logo-size);
+  padding: 2px;
+  line-height: 0;
+}
+
+.sv-logo-mark {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  isolation: isolate;
+}
+
+.sv-logo-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.sv-logo-energy-ring {
+  opacity: 0;
+  transform-origin: 24px 24px;
+}
+
+.sv-logo-hex-frame {
+  transform-origin: 24px 24px;
+}
+
+.sv-logo[data-state="enter"] .sv-logo-mark {
+  animation: sv-logo-enter 480ms var(--ease-sv, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+
+.sv-logo[data-state="loading"] .sv-logo-hex-frame {
+  animation: sv-logo-spin 1.35s linear infinite;
+}
+
+.sv-logo[data-state="loading"] .sv-logo-energy-ring {
+  opacity: 0;
+  animation: none;
+}
+
+.sv-logo[data-state="success"] .sv-logo-s {
+  filter: drop-shadow(0 0 6px rgb(25 224 111 / 0.55));
+}
+
+.sv-logo[data-state="error"] .sv-logo-mark {
+  animation: sv-logo-shake 420ms ease-in-out;
+}
+
+.sv-logo[data-state="error"] .sv-logo-hex {
+  stroke: #ff4d4d;
+}
+
+.sv-logo[data-state="error"] .sv-logo-hex-fill {
+  fill: #ff4d4d;
+  fill-opacity: 0.12;
+}
+
+.sv-logo[data-state="error"] .sv-logo-s {
+  fill: #ff4d4d;
+}
+
+@keyframes sv-logo-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes sv-logo-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.96);
+    opacity: 0.88;
+  }
+}
+
+@keyframes sv-logo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sv-logo-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+.sv-loading-dots span {
+  opacity: 0.25;
+  animation: sv-loading-dot 1.2s ease-in-out infinite;
+}
+
+.sv-loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.sv-loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes sv-loading-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-logo[data-state="enter"] .sv-logo-mark,
+  .sv-logo[data-state="loading"] .sv-logo-hex-frame,
+  .sv-logo[data-state="error"] .sv-logo-mark {
+    animation: none;
+  }
+
+  .sv-loading-dots span {
+    animation: none;
+    opacity: 1;
+  }
+}
