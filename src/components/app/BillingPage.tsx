@@ -5,13 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   ApiError,
-  createBillingCheckoutRequest,
   getBillingOverviewRequest,
   updateAutoRenewRequest,
   type BillingOverview,
   type BillingPaymentMethod,
 } from "../../lib/api";
-import { CHECKOUT_PATH } from "../../lib/routes";
+import { checkoutPath } from "../../lib/routes";
 import { toast } from "../../stores/toast-store";
 import { PageHeader } from "./ui";
 
@@ -86,7 +85,7 @@ function CardRow({
 }
 
 /**
- * Billing — Lemon Squeezy cards, renewals, and plan status.
+ * Billing — PayPal subscriptions, renewals, and plan status.
  * Full card numbers never touch our servers; we only store brand + last4.
  */
 export function BillingPage() {
@@ -124,38 +123,14 @@ export function BillingPage() {
     const checkout = searchParams.get("checkout");
     const mock = searchParams.get("mock");
     if (checkout === "success") {
-      toast.success("Payment received — refreshing subscription…");
       void load();
       router.replace("/app/billing");
     } else if (mock === "1") {
-      toast.success("Dev mock activate — Lemon not configured yet.");
+      toast.success("Dev mock activate — PayPal not configured yet.");
       void load();
       router.replace("/app/billing");
     }
   }, [searchParams, load, router]);
-
-  async function onCheckout() {
-    setBusy(true);
-    try {
-      const result = await createBillingCheckoutRequest({
-        planSlug: plan,
-        interval,
-      });
-      if (result.mockActivated) {
-        toast.error(
-          "Dev mock checkout is enabled. Restart the API with Lemon keys to pay with card.",
-        );
-        return;
-      }
-      window.location.href = result.checkoutUrl;
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError ? err.message : "Could not start checkout",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function onToggleAutoRenew(next: boolean) {
     if (!billing) return;
@@ -177,7 +152,7 @@ export function BillingPage() {
     const url = billing?.updatePaymentUrl || billing?.customerPortalUrl;
     if (!url) {
       toast.error(
-        "Card portal is not ready yet. Complete a Lemon checkout first, or wait for the webhook.",
+        "PayPal portal is not ready yet. Complete a checkout first, or wait for the webhook.",
       );
       return;
     }
@@ -203,16 +178,16 @@ export function BillingPage() {
     <div className="mx-auto max-w-3xl p-6">
       <PageHeader
         title="Billing"
-        description="Subscribe with a card. Lemon Squeezy saves it and renews monthly or yearly automatically."
+        description="Subscribe with a card or PayPal. PayPal can renew monthly or yearly automatically."
       />
 
-      {!billing.lemonConfigured ? (
+      {!billing.paypalConfigured ? (
         <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 px-3 py-2.5 text-[12px] text-text-secondary">
-          Lemon Squeezy keys are not set yet. In development, checkout can
-          mock-activate. For real cards, add{" "}
-          <code className="text-text-primary">LEMON_SQUEEZY_*</code> to{" "}
-          <code className="text-text-primary">backend/.env</code> — see the
-          setup checklist after this milestone.
+          PayPal keys are not set yet. Add{" "}
+          <code className="text-text-primary">PAYPAL_CLIENT_ID</code>,{" "}
+          <code className="text-text-primary">PAYPAL_CLIENT_SECRET</code>, and
+          the four <code className="text-text-primary">PAYPAL_PLAN_*</code> ids
+          to <code className="text-text-primary">backend/.env</code>.
         </div>
       ) : null}
 
@@ -278,7 +253,7 @@ export function BillingPage() {
                 Auto-renew
               </span>
               <span className="mt-0.5 block text-[12px] text-text-muted">
-                When on, Lemon charges the saved card each{" "}
+                When on, PayPal charges each{" "}
                 {billing.billingInterval ?? "period"} automatically. Turn off to
                 cancel at period end.
               </span>
@@ -294,9 +269,8 @@ export function BillingPage() {
               Payment cards
             </h2>
             <p className="mt-1 text-[12px] text-text-muted">
-              We only store brand and last 4 digits. Card data stays with Lemon
-              Squeezy. To switch the card used for renewals, open the secure
-              portal.
+              We only store brand and last 4 digits when PayPal sends them. Card
+              data stays with PayPal. To change the payment method, open PayPal.
             </p>
           </div>
           <button
@@ -331,8 +305,7 @@ export function BillingPage() {
           {isPaid ? "Change plan" : "Subscribe"}
         </h2>
         <p className="mt-1 text-[12px] text-text-muted">
-          Opens Lemon Squeezy card checkout. The card is saved for automatic
-          renewals.
+          Opens the on-site card form. One payment for the period you select.
         </p>
 
         <div className="mt-4 flex gap-2">
@@ -385,21 +358,15 @@ export function BillingPage() {
           </button>
         </div>
 
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void onCheckout()}
-          className="mt-4 flex h-10 w-full items-center justify-center rounded-sm bg-brand-primary text-sm font-semibold text-brand-on-primary shadow-glow-green hover:bg-brand-primary-hover disabled:opacity-60"
+        <Link
+          href={checkoutPath(plan, interval)}
+          className="mt-4 flex h-10 w-full items-center justify-center rounded-sm bg-brand-primary text-sm font-semibold text-brand-on-primary shadow-glow-green hover:bg-brand-primary-hover"
         >
-          {busy ? "Starting checkout…" : "Pay with card"}
-        </button>
+          Continue to payment
+        </Link>
 
         <p className="mt-2 text-center text-[11px] text-text-muted">
-          Or use the{" "}
-          <Link href={CHECKOUT_PATH} className="text-brand-primary hover:underline">
-            checkout page
-          </Link>
-          .
+          Card number, name, and address on Secrela — processed by PayPal.
         </p>
       </section>
     </div>

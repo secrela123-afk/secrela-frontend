@@ -1,5 +1,5 @@
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5005";
 
 export type ApiErrorDetails = {
   level?: "medium" | "high";
@@ -37,9 +37,9 @@ export class ApiError extends Error {
 export async function apiRequest<T>(
   path: string,
   init?: RequestInit,
+  timeoutMs = 15_000,
 ): Promise<T> {
   const controller = new AbortController();
-  const timeoutMs = 15_000;
   const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
   try {
@@ -81,7 +81,7 @@ export async function apiRequest<T>(
     throw new ApiError(
       0,
       "NETWORK_ERROR",
-      "Cannot reach the API. Is the backend running on port 4000?",
+      "Cannot reach the API. Is the backend running on port 5005?",
     );
   } finally {
     window.clearTimeout(timeoutId);
@@ -540,7 +540,7 @@ export type BillingPaymentMethod = {
 };
 
 export type BillingOverview = {
-  lemonConfigured: boolean;
+  paypalConfigured: boolean;
   planSlug: Organization["planSlug"];
   planLabel: string;
   subscriptionStatus: Organization["subscriptionStatus"];
@@ -555,7 +555,7 @@ export type BillingOverview = {
   paymentMethods: BillingPaymentMethod[];
   updatePaymentUrl: string | null;
   customerPortalUrl: string | null;
-  lemonSubscriptionId: string | null;
+  paypalSubscriptionId: string | null;
 };
 
 export function getBillingOverviewRequest() {
@@ -575,6 +575,45 @@ export function createBillingCheckoutRequest(input: {
       method: "POST",
       body: JSON.stringify(input),
     },
+  );
+}
+
+export function getPaypalCardConfigRequest() {
+  return apiRequest<{
+    clientId: string;
+    mode: "sandbox" | "live";
+    currency: string;
+  }>("/api/v1/billing/card/config", { method: "GET" });
+}
+
+export function getPaypalCardClientTokenRequest() {
+  return apiRequest<{ clientToken: string }>(
+    "/api/v1/billing/card/client-token",
+    { method: "POST" },
+  );
+}
+
+export function createPaypalCardOrderRequest(input: {
+  planSlug: "starter" | "team";
+  interval: "monthly" | "yearly";
+}) {
+  return apiRequest<{ orderId: string; amount: string; currency: string }>(
+    "/api/v1/billing/card/orders",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export function capturePaypalCardOrderRequest(orderId: string) {
+  return apiRequest<{ billing: BillingOverview }>(
+    "/api/v1/billing/card/capture",
+    {
+      method: "POST",
+      body: JSON.stringify({ orderId }),
+    },
+    30_000,
   );
 }
 

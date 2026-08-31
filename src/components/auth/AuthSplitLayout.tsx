@@ -124,7 +124,7 @@ export function AuthSplitLayout({
             </div>
           </section>
 
-          <section className="relative flex h-full w-full flex-1 flex-col items-center justify-center py-4 lg:w-[55%] lg:pl-6 xl:pl-10">
+          <section className="relative flex h-full w-full flex-1 flex-col items-center overflow-y-auto py-4 lg:w-[55%] lg:pl-6 xl:pl-10">
             <Link
               href="/"
               className={`mb-3 inline-flex w-full ${maxForm} items-center gap-1.5 text-inherit no-underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:shadow-focus lg:hidden`}
@@ -140,7 +140,7 @@ export function AuthSplitLayout({
               </span>
             </Link>
 
-            <AuthFormEnter className={maxForm}>
+            <AuthFormEnter className={`${maxForm} my-auto w-full`}>
               <div className={authFormCard}>{children}</div>
             </AuthFormEnter>
           </section>

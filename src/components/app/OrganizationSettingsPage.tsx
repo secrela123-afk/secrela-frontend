@@ -539,7 +539,7 @@ function SubscriptionRenewalSection({
                 Auto-renew ({intervalLabel.toLowerCase()})
               </span>
               <span className="mt-0.5 block text-[12px] text-text-muted">
-                When this period ends, Lemon charges your saved card on the same{" "}
+                When this period ends, PayPal charges on the same{" "}
                 {intervalLabel.toLowerCase()} cycle. Manage cards under{" "}
                 <Link
                   href={BILLING_PATH}

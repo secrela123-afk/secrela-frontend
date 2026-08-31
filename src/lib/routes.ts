@@ -10,10 +10,10 @@ export const APP_HOME = "/app";
 /** Shown when a 14-day free trial has ended. */
 export const TRIAL_ENDED_PATH = "/trial-ended";
 
-/** Payment checkout (Lemon Squeezy hosted card form). */
+/** Payment checkout (PayPal hosted approval). */
 export const CHECKOUT_PATH = "/checkout";
 
-/** In-app billing — cards, auto-renew, Lemon portal. */
+/** In-app billing — PayPal subscription and auto-renew. */
 export const BILLING_PATH = "/app/billing";
 
 /** Accept an organization invite from email link. */

@@ -2,41 +2,38 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   AuthSplitLayout,
   type AuthSplitBenefit,
 } from "../../components/auth/AuthSplitLayout";
-import { authPrimaryBtn } from "../../components/auth/auth-classes";
-import { ArrowRightIcon, BoltIcon, LockIcon, ShieldOutlineIcon } from "../../components/auth/icons";
-import { ApiError, createBillingCheckoutRequest } from "../../lib/api";
+import { PaypalCardForm } from "../../components/billing/PaypalCardForm";
+import { BoltIcon, LockIcon, ShieldOutlineIcon } from "../../components/auth/icons";
 import { BILLING_PATH, LANDING_PRICING } from "../../lib/routes";
-import { toast } from "../../stores/toast-store";
 
 type Interval = "monthly" | "yearly";
 
 const BENEFITS: AuthSplitBenefit[] = [
   {
-    title: "Unlock your workspace",
-    description: "Paid plans restore full dashboard access for your team.",
+    title: "Pay on Secrela",
+    description: "Card number, name, and billing address — no PayPal account.",
     icon: LockIcon,
   },
   {
-    title: "Card saved securely",
+    title: "Encrypted by PayPal",
     description:
-      "Lemon Squeezy stores the card and renews monthly or yearly automatically.",
+      "The card never touches our servers. PayPal processes the charge.",
     icon: ShieldOutlineIcon,
   },
   {
-    title: "Monthly or yearly",
-    description: "Pick the billing cycle that fits your company.",
+    title: "This period only",
+    description: "One charge for the cycle you pick. Auto-renew comes later.",
     icon: BoltIcon,
   },
 ];
 
 /**
- * Checkout — redirects to Lemon Squeezy hosted card form.
- * When Lemon is not configured (dev), mock-activates the plan in DB.
+ * Checkout — on-site PayPal Card Fields (one-time capture).
  */
 export function CheckoutScreen() {
   const router = useRouter();
@@ -52,42 +49,44 @@ export function CheckoutScreen() {
       ? intervalParam
       : "monthly",
   );
-  const [busy, setBusy] = useState(false);
 
-  async function onActivate() {
-    if (plan === "free") {
-      toast.error("Pick a paid plan from pricing.");
-      return;
-    }
-    if (plan === "enterprise") {
-      window.location.href = "mailto:sales@secrela.com";
-      return;
-    }
+  const onPaid = useCallback(() => {
+    router.replace("/app/billing");
+  }, [router]);
 
-    setBusy(true);
-    try {
-      const result = await createBillingCheckoutRequest({
-        planSlug: plan,
-        interval,
-      });
-      if (result.mockActivated) {
-        toast.error(
-          "Dev mock checkout is enabled. Set LEMON_SQUEEZY_ALLOW_MOCK_ACTIVATE=false and restart the API to use Lemon Squeezy.",
-        );
-        return;
-      }
-      window.location.href = result.checkoutUrl;
-    } catch (err) {
-      toast.error(
-        err instanceof ApiError ? err.message : "Could not start checkout",
-      );
-    } finally {
-      setBusy(false);
-    }
+  if (plan === "free") {
+    return (
+      <AuthSplitLayout
+        title="Pick a paid plan"
+        description="The free trial does not use card checkout."
+        benefits={BENEFITS}
+        footerNote=""
+      >
+        <Link href={LANDING_PRICING} className="text-brand-primary">
+          Back to pricing
+        </Link>
+      </AuthSplitLayout>
+    );
+  }
+
+  if (plan === "enterprise") {
+    return (
+      <AuthSplitLayout
+        title="Enterprise"
+        description="Contact sales for a custom contract."
+        benefits={BENEFITS}
+        footerNote=""
+      >
+        <a href="mailto:sales@secrela.com" className="text-brand-primary">
+          sales@secrela.com
+        </a>
+      </AuthSplitLayout>
+    );
   }
 
   return (
     <AuthSplitLayout
+      formWidth="560"
       badge={
         <span className="inline-flex items-center rounded-pill border border-brand-primary/50 px-3 py-1 text-[11px] font-medium text-brand-primary capitalize">
           {plan} plan
@@ -95,11 +94,11 @@ export function CheckoutScreen() {
       }
       title={
         <>
-          Activate your{" "}
-          <span className="text-brand-primary">subscription</span>
+          Pay with{" "}
+          <span className="text-brand-primary">card</span>
         </>
       }
-      description="Choose monthly or yearly billing, then pay with your card. The card is saved for automatic renewals."
+      description="Enter card and billing address on this page. No PayPal login and no phone number."
       benefits={BENEFITS}
       footerNote="You stay signed in. Access returns as soon as payment succeeds."
     >
@@ -108,7 +107,7 @@ export function CheckoutScreen() {
           Billing cycle
         </h2>
         <p className="mt-1 text-[13px] text-text-secondary">
-          Select how you want this workspace billed going forward.
+          One payment for the period you select.
         </p>
 
         <div className="mt-5 flex gap-2">
@@ -136,30 +135,13 @@ export function CheckoutScreen() {
           </button>
         </div>
 
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void onActivate()}
-          className={`${authPrimaryBtn} btn-shine mt-8 inline-flex disabled:opacity-60`}
-        >
-          <span>{busy ? "Opening Lemon checkout…" : "Continue to payment"}</span>
-          <span className="absolute right-[1.15rem]">
-            <ArrowRightIcon className="h-5 w-5" />
-          </span>
-        </button>
+        <PaypalCardForm plan={plan} interval={interval} onPaid={onPaid} />
 
         <Link
           href={BILLING_PATH}
           className="mt-3 text-center text-small text-text-secondary hover:text-brand-primary"
         >
-          Manage billing & saved cards
-        </Link>
-
-        <Link
-          href={LANDING_PRICING}
-          className="mt-2 text-center text-small text-text-secondary hover:text-brand-primary"
-        >
-          Back to pricing
+          Back to billing
         </Link>
       </div>
     </AuthSplitLayout>

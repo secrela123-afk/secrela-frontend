@@ -52,9 +52,10 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
-            APP_DIR="/var/www/secrela-web"
+            APP_DIR="/var/www/secrela/secrela-frontend"
+            PM2="sudo -u deploy -H pm2"
             if [ ! -d "$APP_DIR/.git" ]; then
-              echo "Missing $APP_DIR — run server setup first (clone secrela-frontend)."
+              echo "Missing $APP_DIR — clone secrela-frontend on the server first."
               exit 1
             fi
             if [ ! -f "$APP_DIR/.env.production" ]; then
@@ -62,14 +63,14 @@ jobs:
               exit 1
             fi
             cd "$APP_DIR"
-            git fetch origin main
-            git reset --hard origin/main
-            npm ci
-            npm run build
-            if pm2 describe secrela-web >/dev/null 2>&1; then
-              pm2 restart secrela-web --update-env
+            sudo -u deploy git fetch origin main
+            sudo -u deploy git reset --hard origin/main
+            sudo -u deploy npm ci
+            sudo -u deploy npm run build
+            if $PM2 describe secrela-frontend >/dev/null 2>&1; then
+              $PM2 restart secrela-frontend --update-env
             else
-              pm2 start npm --name secrela-web -- start
+              $PM2 start npm --name secrela-frontend -- start -- -H 127.0.0.1 -p 3010
             fi
-            pm2 save
+            $PM2 save
             echo "Web deploy complete."

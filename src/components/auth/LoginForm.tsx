@@ -394,7 +394,7 @@ export function LoginForm() {
 
           <div className="mt-3 grid grid-cols-1 gap-2">
             <a
-              href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/api/v1/auth/oauth/google?next=/app`}
+              href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5005"}/api/v1/auth/oauth/google?next=/app`}
               className={ssoBtnClass}
             >
               <GoogleIcon className="h-3.5 w-3.5" />
