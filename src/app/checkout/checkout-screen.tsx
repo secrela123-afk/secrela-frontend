@@ -15,8 +15,9 @@ type Interval = "monthly" | "yearly";
 
 const BENEFITS: AuthSplitBenefit[] = [
   {
-    title: "Pay on Secrela",
-    description: "Card number, name, and billing address — no PayPal account.",
+    title: "Pay securely",
+    description:
+      "On-site card when PayPal allows it, otherwise PayPal Checkout.",
     icon: LockIcon,
   },
   {
@@ -94,11 +95,11 @@ export function CheckoutScreen() {
       }
       title={
         <>
-          Pay with{" "}
-          <span className="text-brand-primary">card</span>
+          Complete{" "}
+          <span className="text-brand-primary">payment</span>
         </>
       }
-      description="Enter card and billing address on this page. No PayPal login and no phone number."
+      description="PayPal processes the charge. On-site cards appear when your merchant account is eligible; otherwise use PayPal Checkout."
       benefits={BENEFITS}
       footerNote="You stay signed in. Access returns as soon as payment succeeds."
     >

@@ -76,13 +76,23 @@ type PaypalCardFields = {
   }) => Promise<void>;
 };
 
+type PaypalButtons = {
+  render: (selector: string) => Promise<void>;
+};
+
 type PaypalSDK = {
-  CardFields: (opts: {
+  CardFields?: (opts: {
     style: typeof FIELD_STYLE;
     createOrder: () => Promise<string>;
     onApprove: (data: { orderID: string }) => Promise<void>;
     onError: (err: unknown) => void;
   }) => PaypalCardFields;
+  Buttons?: (opts: {
+    style?: { layout?: string; color?: string; shape?: string; label?: string };
+    createOrder: () => Promise<string>;
+    onApprove: (data: { orderID: string }) => Promise<void>;
+    onError: (err: unknown) => void;
+  }) => PaypalButtons;
 };
 
 declare global {
@@ -99,7 +109,7 @@ function loadPaypalSdk(
   clientToken: string,
   mode: "sandbox" | "live",
 ): Promise<PaypalSDK> {
-  if (window.paypal?.CardFields) {
+  if (window.paypal?.CardFields || window.paypal?.Buttons) {
     return Promise.resolve(window.paypal);
   }
   return new Promise((resolve, reject) => {
@@ -110,7 +120,7 @@ function loadPaypalSdk(
 
     const params = new URLSearchParams({
       "client-id": clientId,
-      components: "card-fields",
+      components: "buttons,card-fields",
       currency: "USD",
       intent: "capture",
     });
@@ -125,8 +135,11 @@ function loadPaypalSdk(
     script.setAttribute("data-sv-paypal-card-fields", "1");
     script.async = true;
     script.onload = () => {
-      if (window.paypal?.CardFields) resolve(window.paypal);
-      else reject(new Error("PayPal SDK loaded without CardFields"));
+      if (window.paypal?.CardFields || window.paypal?.Buttons) {
+        resolve(window.paypal);
+      } else {
+        reject(new Error("PayPal SDK loaded without checkout components"));
+      }
     };
     script.onerror = () => reject(new Error("Could not load PayPal"));
     document.body.appendChild(script);
@@ -145,6 +158,7 @@ export function PaypalCardForm({
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [method, setMethod] = useState<"card" | "paypal" | null>(null);
   const [mode, setMode] = useState<"sandbox" | "live">("sandbox");
   const [line1, setLine1] = useState("");
   const [city, setCity] = useState("");
@@ -178,52 +192,83 @@ export function PaypalCardForm({
           config.mode,
         );
         if (cancelled) return;
-        const fields = sdk.CardFields({
+        const createOrder = async () => {
+          const order = await createPaypalCardOrderRequest({
+            planSlug: planRef.current,
+            interval: intervalRef.current,
+          });
+          return order.orderId;
+        };
+        const onApprove = async (data: { orderID: string }) => {
+          if (paidRef.current) return;
+          paidRef.current = true;
+          await capturePaypalCardOrderRequest(data.orderID);
+          toast.success("Payment received. Your workspace is active.");
+          onPaidRef.current();
+        };
+        const onError = (err: unknown) => {
+          console.error("[paypal-card]", err);
+          toast.error("Payment failed. Check the details and try again.");
+          setBusy(false);
+        };
+
+        const fields = sdk.CardFields?.({
           style: FIELD_STYLE,
-          createOrder: async () => {
-            const order = await createPaypalCardOrderRequest({
-              planSlug: planRef.current,
-              interval: intervalRef.current,
-            });
-            return order.orderId;
-          },
-          onApprove: async (data) => {
-            if (paidRef.current) return;
-            paidRef.current = true;
-            await capturePaypalCardOrderRequest(data.orderID);
-            toast.success("Payment received. Your workspace is active.");
-            onPaidRef.current();
-          },
-          onError: (err) => {
-            console.error("[paypal-card]", err);
-            toast.error("Card payment failed. Check the details and try again.");
-            setBusy(false);
-          },
+          createOrder,
+          onApprove,
+          onError,
         });
-        if (!fields.isEligible()) {
+        if (fields?.isEligible()) {
+          fieldsRef.current = fields;
+          await Promise.all([
+            fields
+              .NameField({ style: FIELD_STYLE, placeholder: "Name on card" })
+              .render("#sv-card-name"),
+            fields
+              .NumberField({
+                style: FIELD_STYLE,
+                placeholder: "Card number",
+              })
+              .render("#sv-card-number"),
+            fields
+              .ExpiryField({ style: FIELD_STYLE, placeholder: "MM / YY" })
+              .render("#sv-card-expiry"),
+            fields
+              .CVVField({ style: FIELD_STYLE, placeholder: "CVC" })
+              .render("#sv-card-cvv"),
+          ]);
+          if (!cancelled) {
+            setMethod("card");
+            setReady(true);
+          }
+          return;
+        }
+
+        if (!sdk.Buttons) {
           setLoadError(
-            "PayPal did not enable on-site card fields for this app. In Developer Dashboard → Sandbox app → Features, turn on Advanced Credit and Debit Card Payments, save, then refresh.",
+            config.mode === "live"
+              ? "This PayPal business account cannot take on-site cards. PayPal has not enabled Advanced Card Payments for the live app (common in Egypt). PayPal Checkout is the fallback."
+              : "PayPal did not enable on-site card fields for this sandbox app. In Developer Dashboard → Sandbox app → Features, turn on Advanced Credit and Debit Card Payments, save, then refresh.",
           );
           return;
         }
-        fieldsRef.current = fields;
-        await Promise.all([
-          fields
-            .NameField({ style: FIELD_STYLE, placeholder: "Name on card" })
-            .render("#sv-card-name"),
-          fields
-            .NumberField({
-              style: FIELD_STYLE,
-              placeholder: "Card number",
-            })
-            .render("#sv-card-number"),
-          fields
-            .ExpiryField({ style: FIELD_STYLE, placeholder: "MM / YY" })
-            .render("#sv-card-expiry"),
-          fields
-            .CVVField({ style: FIELD_STYLE, placeholder: "CVC" })
-            .render("#sv-card-cvv"),
-        ]);
+
+        setMethod("paypal");
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        });
+        if (cancelled) return;
+        await sdk.Buttons({
+          style: {
+            layout: "vertical",
+            color: "gold",
+            shape: "rect",
+            label: "pay",
+          },
+          createOrder,
+          onApprove,
+          onError,
+        }).render("#sv-paypal-buttons");
         if (!cancelled) setReady(true);
       } catch (err) {
         if (cancelled) return;
@@ -288,13 +333,22 @@ export function PaypalCardForm({
           </span>
         </p>
       </div>
-      {mode === "sandbox" ? (
+      {mode === "sandbox" && method === "card" ? (
         <p className="mt-2 text-[11px] text-text-muted">
           Sandbox — use a PayPal test card, e.g. 4012 8888 8888 1881 · any
           future expiry · CVC 123.
         </p>
       ) : null}
 
+      <div className={method === "paypal" ? "mt-6" : "hidden"}>
+        <p className="mb-3 text-[13px] text-text-secondary">
+          On-site card fields are not available on this PayPal account. Pay
+          with PayPal (PayPal account or PayPal&apos;s card page).
+        </p>
+        <div id="sv-paypal-buttons" />
+      </div>
+
+      <div className={method === "paypal" ? "hidden" : ""}>
       <label className="mt-5 text-label text-text-muted">Cardholder name</label>
       <div id="sv-card-name" className={`${hostedField} mt-1.5`} />
 
@@ -370,6 +424,7 @@ export function PaypalCardForm({
         Card details are encrypted by PayPal. We never see the full number.
         One-time charge for this period — auto-renew comes later.
       </p>
+      </div>
     </form>
   );
 }
