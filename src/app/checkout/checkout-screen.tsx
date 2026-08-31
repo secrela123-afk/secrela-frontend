@@ -7,6 +7,7 @@ import {
   AuthSplitLayout,
   type AuthSplitBenefit,
 } from "../../components/auth/AuthSplitLayout";
+import { PaddleCheckoutForm } from "../../components/billing/PaddleCheckoutForm";
 import { PaypalCardForm } from "../../components/billing/PaypalCardForm";
 import { BoltIcon, LockIcon, ShieldOutlineIcon } from "../../components/auth/icons";
 import { BILLING_PATH, LANDING_PRICING } from "../../lib/routes";
@@ -15,15 +16,15 @@ type Interval = "monthly" | "yearly";
 
 const BENEFITS: AuthSplitBenefit[] = [
   {
-    title: "Pay securely",
+    title: "Choose how to pay",
     description:
-      "On-site card when PayPal allows it, otherwise PayPal Checkout.",
+      "Card via Paddle (no PayPal account) or PayPal Checkout.",
     icon: LockIcon,
   },
   {
-    title: "Encrypted by PayPal",
+    title: "Card never hits our servers",
     description:
-      "The card never touches our servers. PayPal processes the charge.",
+      "Paddle or PayPal collect the number. We only receive a paid confirmation.",
     icon: ShieldOutlineIcon,
   },
   {
@@ -50,6 +51,7 @@ export function CheckoutScreen() {
       ? intervalParam
       : "monthly",
   );
+  const [method, setMethod] = useState<"paddle" | "paypal">("paddle");
 
   const onPaid = useCallback(() => {
     router.replace("/app/billing");
@@ -99,7 +101,7 @@ export function CheckoutScreen() {
           <span className="text-brand-primary">payment</span>
         </>
       }
-      description="PayPal processes the charge. On-site cards appear when your merchant account is eligible; otherwise use PayPal Checkout."
+      description="Pay with a card through Paddle, or continue with PayPal."
       benefits={BENEFITS}
       footerNote="You stay signed in. Access returns as soon as payment succeeds."
     >
@@ -136,7 +138,40 @@ export function CheckoutScreen() {
           </button>
         </div>
 
-        <PaypalCardForm plan={plan} interval={interval} onPaid={onPaid} />
+        <div className="mt-6 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setMethod("paddle")}
+            className={
+              method === "paddle"
+                ? "flex-1 rounded-md border border-brand-primary bg-brand-primary/10 px-3 py-2.5 text-sm font-semibold text-brand-primary"
+                : "flex-1 rounded-md border border-border-default px-3 py-2.5 text-sm font-medium text-text-secondary"
+            }
+          >
+            Card (Paddle)
+          </button>
+          <button
+            type="button"
+            onClick={() => setMethod("paypal")}
+            className={
+              method === "paypal"
+                ? "flex-1 rounded-md border border-brand-primary bg-brand-primary/10 px-3 py-2.5 text-sm font-semibold text-brand-primary"
+                : "flex-1 rounded-md border border-border-default px-3 py-2.5 text-sm font-medium text-text-secondary"
+            }
+          >
+            PayPal
+          </button>
+        </div>
+
+        {method === "paddle" ? (
+          <PaddleCheckoutForm
+            plan={plan}
+            interval={interval}
+            onPaid={onPaid}
+          />
+        ) : (
+          <PaypalCardForm plan={plan} interval={interval} onPaid={onPaid} />
+        )}
 
         <Link
           href={BILLING_PATH}

@@ -541,6 +541,7 @@ export type BillingPaymentMethod = {
 
 export type BillingOverview = {
   paypalConfigured: boolean;
+  paddleConfigured: boolean;
   planSlug: Organization["planSlug"];
   planLabel: string;
   subscriptionStatus: Organization["subscriptionStatus"];
@@ -612,6 +613,38 @@ export function capturePaypalCardOrderRequest(orderId: string) {
     {
       method: "POST",
       body: JSON.stringify({ orderId }),
+    },
+    30_000,
+  );
+}
+
+export function getPaddleCheckoutConfigRequest() {
+  return apiRequest<{
+    configured: boolean;
+    clientToken: string;
+    environment: "sandbox" | "production";
+  }>("/api/v1/billing/paddle/config", { method: "GET" });
+}
+
+export function createPaddleCheckoutRequest(input: {
+  planSlug: "starter" | "team";
+  interval: "monthly" | "yearly";
+}) {
+  return apiRequest<{ transactionId: string }>(
+    "/api/v1/billing/paddle/checkout",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export function confirmPaddleCheckoutRequest(transactionId: string) {
+  return apiRequest<{ billing: BillingOverview }>(
+    "/api/v1/billing/paddle/confirm",
+    {
+      method: "POST",
+      body: JSON.stringify({ transactionId }),
     },
     30_000,
   );
