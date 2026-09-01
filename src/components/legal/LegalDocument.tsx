@@ -1,18 +1,6 @@
-import Link from "next/link";
 import { LandingFooter } from "../landing/LandingFooter";
 import { LandingHeader } from "../landing/LandingHeader";
 import { LEGAL_EFFECTIVE_DATE, type LegalSection } from "../../lib/legal-content";
-import {
-  PRIVACY_PATH,
-  REFUND_PATH,
-  TERMS_PATH,
-} from "../../lib/legal-paths";
-
-const RELATED = [
-  { href: TERMS_PATH, label: "Terms of Service" },
-  { href: PRIVACY_PATH, label: "Privacy Policy" },
-  { href: REFUND_PATH, label: "Refund Policy" },
-] as const;
 
 export function LegalDocument({
   eyebrow,
@@ -33,55 +21,72 @@ export function LegalDocument({
       />
       <LandingHeader />
 
-      <article className="relative z-[1] mx-auto w-full max-w-[760px] px-4 pt-14 pb-8 sm:px-6 sm:pt-16">
-        <p className="text-[11px] font-semibold tracking-[0.14em] text-brand-primary uppercase">
-          {eyebrow}
-        </p>
-        <h1 className="mt-3 text-[clamp(1.75rem,3vw,2.35rem)] font-bold leading-[1.15] tracking-tight text-text-primary">
-          {title}
-        </h1>
-        <p className="mt-3 text-[13px] text-text-muted">
-          Effective {LEGAL_EFFECTIVE_DATE}
-        </p>
-        <p className="mt-6 text-[15px] leading-relaxed text-text-secondary">
-          {intro}
-        </p>
+      <div className="relative z-[1] mx-auto w-full max-w-[880px] px-4 pt-12 pb-16 sm:px-6 sm:pt-16">
+        <header className="mb-8">
+          <p className="text-[11px] font-semibold tracking-[0.14em] text-brand-primary uppercase">
+            {eyebrow}
+          </p>
+          <h1 className="mt-3 text-[clamp(1.85rem,3.4vw,2.55rem)] font-bold leading-[1.12] tracking-tight text-text-primary">
+            {title}
+          </h1>
+          <p className="mt-3 text-[13px] text-text-muted">
+            Effective {LEGAL_EFFECTIVE_DATE}
+          </p>
+        </header>
 
-        <nav
-          aria-label="Legal pages"
-          className="mt-8 flex flex-wrap gap-2 border-y border-border-subtle/80 py-3"
-        >
-          {RELATED.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-sm border border-border-subtle bg-surface-card/70 px-3 py-1.5 text-[12px] font-medium text-text-secondary no-underline transition-colors duration-fast ease-sv hover:border-brand-primary/40 hover:text-text-primary"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <article className="rounded-2xl border border-border-subtle bg-surface-card/85 px-5 py-8 shadow-card sm:px-10 sm:py-11">
+          <p className="text-[15px] leading-[1.75] text-pretty text-text-secondary">
+            {intro}
+          </p>
 
-        <div className="mt-10 flex flex-col gap-9">
-          {sections.map((section) => (
-            <section key={section.heading}>
-              <h2 className="text-[1.05rem] font-semibold tracking-tight text-text-primary">
-                {section.heading}
-              </h2>
-              {section.paragraphs.map((p, i) => (
-                <p
-                  key={`${section.heading}-${i}`}
-                  className="mt-3 text-[15px] leading-[1.7] text-text-secondary"
-                >
-                  {p}
-                </p>
-              ))}
-            </section>
-          ))}
-        </div>
-      </article>
+          <div className="mt-10 flex flex-col gap-0">
+            {sections.map((section) => (
+              <section
+                key={section.heading}
+                className="border-t border-border-subtle/70 py-8 first:border-t-0 first:pt-0 last:pb-0"
+              >
+                <h2 className="border-l-2 border-brand-primary pl-3.5 text-[1.08rem] font-semibold tracking-tight text-text-primary">
+                  {section.heading}
+                </h2>
+                {section.paragraphs.map((p, i) => (
+                  <p
+                    key={`${section.heading}-${i}`}
+                    className="mt-3.5 text-[15px] leading-[1.8] text-pretty break-words text-text-secondary"
+                  >
+                    {p}
+                  </p>
+                ))}
+                {section.bullets && section.bullets.length > 0 ? (
+                  <ul className="mt-4 list-none space-y-2.5 p-0">
+                    {section.bullets.map((item) => (
+                      <li
+                        key={item}
+                        className="flex gap-2.5 text-[15px] leading-[1.7] text-text-secondary"
+                      >
+                        <span
+                          className="mt-[0.55rem] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-primary"
+                          aria-hidden="true"
+                        />
+                        <span className="min-w-0 text-pretty">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {section.after?.map((p, i) => (
+                  <p
+                    key={`${section.heading}-after-${i}`}
+                    className="mt-3.5 text-[15px] leading-[1.8] text-pretty break-words text-text-secondary"
+                  >
+                    {p}
+                  </p>
+                ))}
+              </section>
+            ))}
+          </div>
+        </article>
+      </div>
 
-      <div className="relative z-[1] mt-8">
+      <div className="relative z-[1]">
         <LandingFooter />
       </div>
     </main>

@@ -5,6 +5,8 @@ export const LEGAL_SITE = "https://secrela.com";
 export type LegalSection = {
   heading: string;
   paragraphs: string[];
+  bullets?: string[];
+  after?: string[];
 };
 
 export const TERMS_SECTIONS: LegalSection[] = [
@@ -32,7 +34,14 @@ export const TERMS_SECTIONS: LegalSection[] = [
   {
     heading: "4. Acceptable use",
     paragraphs: [
-      "You may use Secrela only for lawful business purposes. You must not: probe or attack the Service; attempt to access another tenant's data; store illegal content; interfere with other customers; resell the Service without our written consent; or use the Service to violate export, sanctions, or privacy laws.",
+      "You may use Secrela only for lawful business purposes. You must not:",
+    ],
+    bullets: [
+      "Probe, scan, or attack the Service, or attempt to access another tenant's data.",
+      "Store illegal content or use the Service to violate export, sanctions, or privacy laws.",
+      "Interfere with other customers, or resell the Service without our written consent.",
+    ],
+    after: [
       "We may suspend or terminate accounts that create security, legal, or operational risk.",
     ],
   },
