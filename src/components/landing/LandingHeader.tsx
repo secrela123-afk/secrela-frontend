@@ -9,10 +9,10 @@ import { APP_HOME, LANDING_PRICING, registerPath } from "../../lib/routes";
 import { SecureVaultLogo } from "../brand/SecureVaultLogo";
 
 const NAV = [
-  { href: "#product", label: "Product" },
-  { href: "#security", label: "Security" },
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#pricing", label: "Pricing" },
+  { href: "/#product", label: "Product" },
+  { href: "/#security", label: "Security" },
+  { href: "/#how-it-works", label: "How it works" },
+  { href: "/#pricing", label: "Pricing" },
 ] as const;
 
 const btnPrimary =

@@ -3,11 +3,16 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { APP_NAME } from "../../lib/brand";
+import {
+  PRIVACY_PATH,
+  REFUND_PATH,
+  TERMS_PATH,
+} from "../../lib/legal-paths";
 import { SecureVaultLogo } from "../brand/SecureVaultLogo";
 
 const PRODUCT_LINKS = [
-  { href: "#product", label: "Features" },
-  { href: "#security", label: "Security" },
+  { href: "/#product", label: "Features" },
+  { href: "/#security", label: "Security" },
   { href: "#", label: "Integrations" },
   { href: "#", label: "Changelog" },
 ] as const;
@@ -30,7 +35,7 @@ const COMPANY_LINKS = [
   { href: "#", label: "About" },
   { href: "#", label: "Careers" },
   { href: "mailto:sales@secrela.com", label: "Contact" },
-  { href: "#", label: "Privacy" },
+  { href: PRIVACY_PATH, label: "Privacy" },
 ] as const;
 
 const LINK_COLUMNS = [
@@ -48,9 +53,9 @@ const SOCIAL = [
 ] as const;
 
 const LEGAL_LINKS = [
-  { href: "#", label: "Privacy Policy" },
-  { href: "#", label: "Terms of Service" },
-  { href: "#security", label: "Security" },
+  { href: PRIVACY_PATH, label: "Privacy Policy" },
+  { href: TERMS_PATH, label: "Terms of Service" },
+  { href: REFUND_PATH, label: "Refund Policy" },
 ] as const;
 
 const linkClass =
@@ -199,12 +204,12 @@ export function LandingFooter() {
           <ul className="m-0 flex list-none flex-wrap items-center gap-x-5 gap-y-1 p-0">
             {LEGAL_LINKS.map((link) => (
               <li key={link.label}>
-                <a
+                <Link
                   href={link.href}
                   className="text-[12px] text-text-muted no-underline transition-colors duration-fast ease-sv hover:text-text-primary focus-visible:text-brand-primary focus-visible:outline-none"
                 >
                   {link.label}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
