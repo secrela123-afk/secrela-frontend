@@ -21,57 +21,34 @@ import {
 } from "../../../hooks/queries/useMembersMutations";
 import { useOrganizationRolesQuery } from "../../../hooks/queries/useRolesMutations";
 import { InviteMemberModal } from "../InviteMemberModal";
-import { ConfirmDialog, RowActionsMenu } from "../RowActionsMenu";
+import { ConfirmDialog, RowActionsMenu, type ActionItem } from "../RowActionsMenu";
 import { useRequiredWorkspace } from "../../../hooks/workspace/useWorkspace";
 import { usePlanEntitlementsQuery } from "../../../hooks/queries/usePlanEntitlementsQuery";
-import { formatPlanLimit } from "../../../lib/plan-entitlements";
+import { formatPlanLimit, formatPlanUsage } from "../../../lib/plan-entitlements";
 import { PlanUpgradePrompt } from "../PlanUpgradePrompt";
 import { isOwnerOrAdminRole } from "../../../lib/app-nav";
+import { BILLING_PATH } from "../../../lib/routes";
 import { toast } from "../../../stores/toast-store";
 import { isAnyQueryBooting } from "../../../lib/query-status";
-import { Avatar, PageLoading } from "../ui";
+import { Avatar } from "../ui";
 import {
+  IconCheck,
+  IconChevronRight,
+  IconMail,
   IconPlus,
+  IconSearch,
   IconSecurity,
+  IconUser,
   IconUsers,
+  IconWarning,
+  IconX,
 } from "../icons";
+import Link from "next/link";
 
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("");
-}
+const PAGE_SIZE = 8;
 
-/** Display label for a role name (or legacy system key). */
-function roleLabel(name: string) {
-  return name;
-}
-
-function RolePill({ role }: { role: string }) {
-  const key = role.trim().toLowerCase();
-  if (key === "owner") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-sm border border-brand-primary/40 bg-brand-primary/10 px-2 py-0.5 text-[11px] font-semibold text-brand-primary">
-        <IconSecurity className="h-3 w-3" />
-        {role}
-      </span>
-    );
-  }
-  if (key === "admin") {
-    return (
-      <span className="inline-flex items-center rounded-sm bg-purple/15 px-2 py-0.5 text-[11px] font-semibold text-purple">
-        {role}
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded-sm bg-surface-elevated px-2 py-0.5 text-[11px] font-semibold text-text-secondary">
-      {role}
-    </span>
-  );
-}
+type DirectoryTab = "all" | "active" | "invited" | "attention";
+type SortKey = "name-asc" | "name-desc" | "newest" | "oldest" | "role";
 
 type TableRow =
   | {
@@ -95,9 +72,52 @@ type TableRow =
       expiresAt: string;
     };
 
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function rowLabel(row: TableRow) {
+  return row.kind === "member" ? row.name : row.email;
+}
+
+function rowRoleName(row: TableRow) {
+  return row.kind === "member" ? row.role.name : row.roleName;
+}
+
+function rowSortDate(row: TableRow) {
+  return row.kind === "member" ? row.joinedAt : row.expiresAt;
+}
+
+function formatJoined(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "—";
+  const seconds = Math.round((Date.now() - then) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function isAttentionRow(row: TableRow) {
+  if (row.kind === "invite") return true;
+  return row.status === "unverified" || row.status === "disabled" || !row.mfa;
+}
+
 /**
- * Members hub — layout aligned to design reference (SecureVault roles only).
- * Page feedback → toast. Modal/form errors → inline.
+ * Members directory — who can enter this workspace, and under which role.
+ * Page feedback → toast. Modal/form errors → inline. Destructive actions confirm.
  */
 export function MembersPage() {
   const { can, role: myRole, user } = useRequiredWorkspace();
@@ -129,10 +149,6 @@ export function MembersPage() {
     invites.length === 0;
   const isBooting = isAnyQueryBooting(membersQuery, invitesQuery);
   const error = membersQuery.error ?? invitesQuery.error;
-  const refetch = () => {
-    void membersQuery.refetch();
-    void invitesQuery.refetch();
-  };
 
   const inviteableRoles = useMemo(
     () =>
@@ -149,12 +165,13 @@ export function MembersPage() {
 
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | string>("all");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "active" | "invited" | "unverified" | "disabled"
-  >("all");
+  const [tab, setTab] = useState<DirectoryTab>("all");
+  const [sort, setSort] = useState<SortKey>("name-asc");
+  const [page, setPage] = useState(1);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [sidebarEmail, setSidebarEmail] = useState("");
   const [sidebarRoleId, setSidebarRoleId] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [roleEdit, setRoleEdit] = useState<{
     id: string;
     name: string;
@@ -168,6 +185,10 @@ export function MembersPage() {
   const [disableTarget, setDisableTarget] = useState<{
     id: string;
     name: string;
+  } | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<{
+    id: string;
+    email: string;
   } | null>(null);
 
   useEffect(() => {
@@ -194,20 +215,27 @@ export function MembersPage() {
     const unverified = members.filter(
       (m) => m.status !== "disabled" && !m.user.emailVerified,
     ).length;
+    const withoutMfa = members.filter(
+      (m) => m.status !== "disabled" && !m.user.mfaEnabled,
+    ).length;
+    const mfaOn = members.filter(
+      (m) => m.status !== "disabled" && m.user.mfaEnabled,
+    ).length;
+    const seated = members.filter((m) => m.status !== "disabled").length;
     const pending = invites.length;
-    const activePct = total === 0 ? 0 : Math.round((active / total) * 100);
-    return { total, active, unverified, pending, activePct, disabled };
+    const mfaPct = seated === 0 ? 0 : Math.round((mfaOn / seated) * 100);
+    return {
+      total,
+      active,
+      unverified,
+      pending,
+      disabled,
+      withoutMfa,
+      mfaOn,
+      mfaPct,
+      seated,
+    };
   }, [members, invites]);
-
-  const roleCounts = useMemo(() => {
-    const counts = { owner: 0, admin: 0, member: 0 };
-    for (const m of members) {
-      if (m.role.systemKey === "owner") counts.owner += 1;
-      else if (m.role.systemKey === "admin") counts.admin += 1;
-      else counts.member += 1;
-    }
-    return counts;
-  }, [members]);
 
   const rows = useMemo((): TableRow[] => {
     const memberRows: TableRow[] = members.map((m: OrganizationMember) => ({
@@ -240,7 +268,14 @@ export function MembersPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return rows.filter((row) => {
+    const next = rows.filter((row) => {
+      if (tab === "active") {
+        if (row.kind !== "member" || row.status !== "active") return false;
+      } else if (tab === "invited") {
+        if (row.kind !== "invite") return false;
+      } else if (tab === "attention") {
+        if (!isAttentionRow(row)) return false;
+      }
       if (roleFilter !== "all") {
         if (row.kind === "member") {
           const matchId = row.role.id === roleFilter;
@@ -254,7 +289,6 @@ export function MembersPage() {
           if (!matchId && !matchName) return false;
         }
       }
-      if (statusFilter !== "all" && row.status !== statusFilter) return false;
       if (!q) return true;
       if (row.kind === "member") {
         return (
@@ -268,7 +302,36 @@ export function MembersPage() {
         row.roleName.toLowerCase().includes(q)
       );
     });
-  }, [rows, query, roleFilter, statusFilter]);
+
+    next.sort((a, b) => {
+      if (sort === "name-asc") return rowLabel(a).localeCompare(rowLabel(b));
+      if (sort === "name-desc") return rowLabel(b).localeCompare(rowLabel(a));
+      if (sort === "role") return rowRoleName(a).localeCompare(rowRoleName(b));
+      const da = new Date(rowSortDate(a)).getTime();
+      const db = new Date(rowSortDate(b)).getTime();
+      return sort === "newest" ? db - da : da - db;
+    });
+    return next;
+  }, [rows, query, roleFilter, tab, sort]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, roleFilter, tab, sort]);
+
+  const selected = useMemo(
+    () => rows.find((row) => row.id === selectedId) ?? null,
+    [rows, selectedId],
+  );
+
+  useEffect(() => {
+    if (selectedId && !rows.some((row) => row.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [rows, selectedId]);
 
   async function onRevoke(invitationId: string, email: string) {
     try {
@@ -277,6 +340,8 @@ export function MembersPage() {
         "Invitation revoked",
         `${email} can no longer join with that link.`,
       );
+      setRevokeTarget(null);
+      if (selectedId === invitationId) setSelectedId(null);
     } catch (err) {
       toast.error(
         "Could not revoke invite",
@@ -306,7 +371,6 @@ export function MembersPage() {
     }
   }
 
-  /** Target-side gate: never manage Owner or yourself. Action perms use can(). */
   function canManageTarget(
     targetSystemKey: MembershipRole | null,
     targetUserId?: string,
@@ -325,7 +389,7 @@ export function MembersPage() {
       });
       toast.success(
         "Role updated",
-        `${roleEdit.name} is now ${roleLabel(roleEdit.roleName)}.`,
+        `${roleEdit.name} is now ${roleEdit.roleName}.`,
       );
       setRoleEdit(null);
     } catch (err) {
@@ -345,6 +409,7 @@ export function MembersPage() {
         `${removeTarget.name} was signed out and needs a new invite to return.`,
       );
       setRemoveTarget(null);
+      if (selectedId === removeTarget.id) setSelectedId(null);
     } catch (err) {
       toast.error(
         "Could not delete member",
@@ -370,10 +435,7 @@ export function MembersPage() {
     }
   }
 
-  async function onEnableMember(row: {
-    id: string;
-    name: string;
-  }) {
+  async function onEnableMember(row: { id: string; name: string }) {
     try {
       await enableMember.mutateAsync(row.id);
       toast.success("Member enabled", `${row.name} can use the workspace again.`);
@@ -407,39 +469,168 @@ export function MembersPage() {
     setInviteOpen(true);
   }
 
-  const totalForChart = Math.max(
-    roleCounts.owner + roleCounts.admin + roleCounts.member,
-    1,
-  );
+  function memberActions(row: Extract<TableRow, { kind: "member" }>): ActionItem[] {
+    const items: ActionItem[] = [
+      {
+        id: "copy",
+        label: "Copy email",
+        onSelect: () => void copyEmail(row.email),
+      },
+    ];
+    if (canChangeRole && canManageTarget(row.role.systemKey, row.userId)) {
+      items.push({
+        id: "role",
+        label: "Change role",
+        onSelect: () =>
+          setRoleEdit({
+            id: row.id,
+            name: row.name,
+            roleId: row.role.id,
+            roleName: row.role.name,
+          }),
+      });
+    }
+    if (canDisable && canManageTarget(row.role.systemKey, row.userId)) {
+      items.push(
+        row.status === "disabled"
+          ? {
+              id: "enable",
+              label: "Enable member",
+              onSelect: () => void onEnableMember({ id: row.id, name: row.name }),
+            }
+          : {
+              id: "disable",
+              label: "Disable member",
+              onSelect: () => setDisableTarget({ id: row.id, name: row.name }),
+            },
+      );
+    }
+    if (canRemove && canManageTarget(row.role.systemKey, row.userId)) {
+      items.push({
+        id: "remove",
+        label: "Delete member",
+        tone: "danger",
+        onSelect: () => setRemoveTarget({ id: row.id, name: row.name }),
+      });
+    }
+    return items;
+  }
+
+  function inviteActions(row: Extract<TableRow, { kind: "invite" }>): ActionItem[] {
+    const items: ActionItem[] = [
+      {
+        id: "copy",
+        label: "Copy email",
+        onSelect: () => void copyEmail(row.email),
+      },
+    ];
+    if (canInvite) {
+      items.push(
+        {
+          id: "resend",
+          label: "Resend invite",
+          tone: "brand",
+          disabled: resendInvite.isPending,
+          onSelect: () => void onResend(row.id, row.email),
+        },
+        {
+          id: "revoke",
+          label: "Revoke invite",
+          tone: "danger",
+          disabled: revokeInvite.isPending,
+          onSelect: () => setRevokeTarget({ id: row.id, email: row.email }),
+        },
+      );
+    }
+    return items;
+  }
+
+  const attentionCount = rows.filter(isAttentionRow).length;
+  const inviteDisabledReason = !isOwnerOrAdminRole(myRole) || !can("member.invite")
+    ? "You need invite permission"
+    : !canInviteByPlan
+      ? "Seat limit reached"
+      : undefined;
+
+  const tabs: { id: DirectoryTab; label: string; count: number }[] = [
+    { id: "all", label: "Everyone", count: rows.length },
+    { id: "active", label: "Active", count: stats.active },
+    { id: "invited", label: "Invited", count: stats.pending },
+    { id: "attention", label: "Needs attention", count: attentionCount },
+  ];
 
   return (
     <div className="p-4 lg:p-6">
-      {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[1.375rem] font-semibold tracking-tight text-text-primary sm:text-section">
+      <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-section font-semibold tracking-tight text-text-primary">
             Members
           </h1>
-          <p className="mt-1 max-w-2xl text-small text-text-secondary">
-            Manage organization members and their access to vaults and secrets.
+          <p className="mt-1 max-w-xl text-small text-text-secondary">
+            People who can enter this workspace — and the role that bounds what
+            they can see, reveal, or approve.
           </p>
-          <p className="mt-1 text-[12px] text-text-muted">
-            Your role:{" "}
-            <span className="font-semibold text-text-primary">
-              {myRole.name}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-text-muted">
+            <span>
+              Your role{" "}
+              <span className="font-semibold text-text-primary">{myRole.name}</span>
             </span>
-          </p>
+            {planUsage && planEntitlements ? (
+              isOwnerOrAdminRole(myRole) ? (
+                <Link
+                  href={BILLING_PATH}
+                  className="text-text-muted no-underline hover:text-brand-primary"
+                >
+                  Seats{" "}
+                  <span className="font-semibold text-text-primary">
+                    {formatPlanUsage(
+                      planUsage.seatsUsed,
+                      planEntitlements.maxMembers,
+                    )}
+                  </span>
+                </Link>
+              ) : (
+                <span>
+                  Seats{" "}
+                  <span className="font-semibold text-text-primary">
+                    {formatPlanUsage(
+                      planUsage.seatsUsed,
+                      planEntitlements.maxMembers,
+                    )}
+                  </span>
+                </span>
+              )
+            ) : null}
+            <span>
+              MFA coverage{" "}
+              <span
+                className={`font-semibold ${
+                  stats.mfaPct === 100
+                    ? "text-brand-primary"
+                    : stats.seated === 0
+                      ? "text-text-primary"
+                      : "text-warning"
+                }`}
+              >
+                {stats.seated === 0 ? "—" : `${stats.mfaPct}%`}
+              </span>
+              <span className="sr-only">
+                {stats.mfaOn} of {stats.seated} seated members have MFA enabled
+              </span>
+            </span>
+          </div>
         </div>
         <button
           type="button"
           onClick={() => openInvite()}
           disabled={!canInvite}
-          className="inline-flex h-10 items-center gap-1.5 self-start rounded-sm bg-brand-primary px-3.5 text-[13px] font-semibold text-brand-on-primary shadow-glow-green hover:bg-brand-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+          title={inviteDisabledReason}
+          className="inline-flex h-11 items-center gap-1.5 self-start rounded-sm bg-brand-primary px-4 text-[13px] font-semibold text-brand-on-primary shadow-glow-green transition-colors hover:bg-brand-primary-hover focus-visible:outline-none focus-visible:shadow-focus disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
         >
           <IconPlus className="h-4 w-4" />
-          Invite Member
+          Invite member
         </button>
-      </div>
+      </header>
 
       {planEntitlements && planUsage && !canInviteByPlan ? (
         <PlanUpgradePrompt
@@ -451,16 +642,15 @@ export function MembersPage() {
       ) : null}
 
       {isSoloOwner && !isBooting ? (
-        <div className="mb-5 flex items-start gap-3 rounded-md border border-brand-primary/35 bg-brand-primary/10 px-3.5 py-3">
-          <IconUsers className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
-          <div className="text-[13px] leading-relaxed text-text-secondary">
-            <p className="font-semibold text-text-primary">
-              You are the only member
-            </p>
+        <div className="mb-5 flex items-start gap-3 rounded-md border border-border-subtle bg-surface-card px-4 py-3.5">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-brand-primary/10 text-brand-primary">
+            <IconUsers className="h-4 w-4" />
+          </span>
+          <div className="min-w-0 text-small leading-relaxed text-text-secondary">
+            <p className="font-semibold text-text-primary">You are the only member</p>
             <p className="mt-0.5">
-              Admin is a role you assign when you invite someone — not a second
-              account. Invite an Admin to help manage the workspace. Owner and
-              Admin can both invite more people.
+              Owner stays with the account that created the workspace. Invite an
+              Admin if someone else should help manage vaults, access, and seats.
             </p>
             <button
               type="button"
@@ -475,477 +665,302 @@ export function MembersPage() {
         </div>
       ) : null}
 
-      {/* Stat cards */}
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Total Members"
-          value={String(stats.total)}
-          hint={`${members.filter((m) => {
-            const d = Date.now() - new Date(m.createdAt).getTime();
-            return d < 30 * 24 * 60 * 60 * 1000;
-          }).length} joined in last 30 days`}
-          icon={<IconUsers className="h-4 w-4 text-brand-primary" />}
-          iconBg="bg-brand-primary/10"
-        />
-        <StatCard
-          label="Active Members"
-          value={String(stats.active)}
-          hint={`${stats.activePct}% of total verified`}
-          icon={<IconSecurity className="h-4 w-4 text-brand-primary" />}
-          iconBg="bg-brand-primary/10"
-        />
-        <StatCard
-          label="Pending Invitations"
-          value={String(stats.pending)}
-          hint={
-            stats.pending > 0 ? (
-              <button
-                type="button"
-                className="text-warning hover:underline"
-                onClick={() => setStatusFilter("invited")}
-              >
-                View invitations
-              </button>
-            ) : (
-              "No open invites"
-            )
-          }
-          icon={
-            <span className="text-[14px] font-bold text-warning" aria-hidden>
-              ✉
-            </span>
-          }
-          iconBg="bg-warning/10"
-        />
-        <StatCard
-          label="Unverified"
-          value={String(stats.unverified)}
-          hint={
-            stats.unverified > 0 ? (
-              <button
-                type="button"
-                className="text-text-muted hover:underline"
-                onClick={() => setStatusFilter("unverified")}
-              >
-                View unverified
-              </button>
-            ) : (
-              "All members verified"
-            )
-          }
-          icon={<IconUsers className="h-4 w-4 text-text-muted" />}
-          iconBg="bg-surface-elevated"
-        />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
-        {/* Main table — full height grows with content; page scrolls, not an inner table scroll */}
-        <section className="min-w-0 overflow-visible rounded-md border border-border-subtle bg-surface-card shadow-card">
-          <div className="flex flex-wrap items-center gap-2 border-b border-border-subtle p-3 sm:p-4">
-            <div className="relative min-w-[220px] flex-1">
-              <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-text-muted">
-                ⌕
-              </span>
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search members…"
-                className="h-10 w-full rounded-sm border border-border-default bg-background-secondary py-0 pr-3 pl-9 text-[13px] text-text-primary outline-none placeholder:text-text-muted focus:border-brand-primary focus:shadow-focus"
-              />
+      {!isBooting && attentionCount > 0 ? (
+        <section
+          className="mb-5 rounded-md border border-border-subtle bg-surface-card px-4 py-3"
+          aria-label="Access hygiene"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[12px] font-semibold text-text-primary">
+                Access hygiene
+              </p>
+              <p className="mt-0.5 text-[12px] text-text-muted">
+                These items increase exposure if they sit unreviewed.
+              </p>
             </div>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="h-10 rounded-sm border border-border-default bg-background-secondary px-2.5 text-[12px] font-medium text-text-secondary outline-none focus:border-brand-primary"
-            >
-              <option value="all">All Roles</option>
-              {allRoles.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(
-                  e.target.value as
-                    | "all"
-                    | "active"
-                    | "invited"
-                    | "unverified"
-                    | "disabled",
-                )
-              }
-              className="h-10 rounded-sm border border-border-default bg-background-secondary px-2.5 text-[12px] font-medium text-text-secondary outline-none focus:border-brand-primary"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="invited">Invited</option>
-              <option value="unverified">Unverified</option>
-              <option value="disabled">Disabled</option>
-            </select>
-            <button
-              type="button"
-              onClick={() => void refetch()}
-              className="h-10 rounded-sm border border-border-default px-3 text-[12px] font-semibold text-text-secondary hover:border-brand-primary hover:text-brand-primary"
-            >
-              Refresh
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {stats.withoutMfa > 0 ? (
+                <HygieneChip
+                  label={`${stats.withoutMfa} without MFA`}
+                  tone="warning"
+                  onClick={() => setTab("attention")}
+                />
+              ) : null}
+              {stats.unverified > 0 ? (
+                <HygieneChip
+                  label={`${stats.unverified} unverified`}
+                  tone="warning"
+                  onClick={() => setTab("attention")}
+                />
+              ) : null}
+              {stats.disabled > 0 ? (
+                <HygieneChip
+                  label={`${stats.disabled} disabled`}
+                  tone="danger"
+                  onClick={() => setTab("attention")}
+                />
+              ) : null}
+              {stats.pending > 0 ? (
+                <HygieneChip
+                  label={`${stats.pending} invite waiting`}
+                  tone="info"
+                  onClick={() => setTab("invited")}
+                />
+              ) : null}
+            </div>
           </div>
+        </section>
+      ) : null}
 
-          {isBooting ? (
-            <PageLoading label="Loading members…" />
-          ) : (
-            <div className="w-full overflow-visible">
-              <table className="w-full table-fixed border-collapse text-left text-[14px]">
+      <section className="overflow-hidden rounded-md border border-border-subtle bg-surface-card shadow-card">
+        <div className="border-b border-border-subtle px-3 pt-2 sm:px-4">
+          <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Member lists">
+            {tabs.map((item) => {
+              const active = tab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setTab(item.id)}
+                  className={`relative shrink-0 px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                    active
+                      ? "text-text-primary"
+                      : "text-text-muted hover:text-text-secondary"
+                  }`}
+                >
+                  {item.label}
+                  <span className="ml-1.5 tabular-nums text-text-muted">{item.count}</span>
+                  {active ? (
+                    <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-pill bg-brand-primary" />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 border-b border-border-subtle p-3 sm:flex-row sm:items-center sm:p-4">
+          <label className="relative min-w-0 flex-1">
+            <span className="sr-only">Search members</span>
+            <IconSearch className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by name, email, or role"
+              className="h-10 w-full rounded-sm border border-border-default bg-background-secondary py-0 pr-3 pl-9 text-[13px] text-text-primary outline-none placeholder:text-text-muted focus:border-brand-primary focus:shadow-focus"
+            />
+          </label>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            aria-label="Filter by role"
+            className="h-10 rounded-sm border border-border-default bg-background-secondary px-2.5 text-[12px] font-medium text-text-secondary outline-none focus:border-brand-primary focus:shadow-focus"
+          >
+            <option value="all">All roles</option>
+            {allRoles.map((role) => (
+              <option key={role.id} value={role.id}>
+                {role.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            aria-label="Sort directory"
+            className="h-10 rounded-sm border border-border-default bg-background-secondary px-2.5 text-[12px] font-medium text-text-secondary outline-none focus:border-brand-primary focus:shadow-focus"
+          >
+            <option value="name-asc">Name A–Z</option>
+            <option value="name-desc">Name Z–A</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="role">Role</option>
+          </select>
+        </div>
+
+        {isBooting ? (
+          <DirectorySkeleton />
+        ) : filtered.length === 0 ? (
+          <EmptyDirectory
+            hasPeople={rows.length > 0}
+            canInvite={canInvite}
+            onInvite={() => openInvite()}
+            onClear={() => {
+              setQuery("");
+              setRoleFilter("all");
+              setTab("all");
+            }}
+          />
+        ) : (
+          <>
+            <div className="hidden md:block">
+              <table className="w-full table-fixed border-collapse text-left text-small">
                 <colgroup>
-                  <col className="w-[32%]" />
+                  <col className="w-[34%]" />
                   <col className="w-[14%]" />
                   <col className="w-[14%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[14%]" />
+                  <col className="w-[12%]" />
                   <col className="w-[16%]" />
+                  <col className="w-[10%]" />
                 </colgroup>
                 <thead>
-                  <tr className="border-b border-border-subtle text-[11px] uppercase tracking-[0.08em] text-text-muted">
-                    <th className="px-5 py-4 font-semibold">Member</th>
-                    <th className="px-4 py-4 font-semibold">Role</th>
-                    <th className="px-4 py-4 font-semibold">Status</th>
-                    <th className="px-4 py-4 font-semibold">MFA</th>
-                    <th className="px-4 py-4 font-semibold">Joined</th>
-                    <th className="px-4 py-4 font-semibold">Actions</th>
+                  <tr className="border-b border-border-subtle text-label tracking-[0.08em] text-text-muted uppercase">
+                    <th className="px-5 py-3 font-semibold">Person</th>
+                    <th className="px-4 py-3 font-semibold">Role</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">MFA</th>
+                    <th className="px-4 py-3 font-semibold">Since</th>
+                    <th className="px-4 py-3 font-semibold">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((row) =>
-                    row.kind === "member" ? (
+                  {paged.map((row) => {
+                    const isYou =
+                      row.kind === "member" && row.userId === user.id;
+                    const isSelected = selectedId === row.id;
+                    return (
                       <tr
-                        key={`m-${row.id}`}
-                        className="border-b border-border-subtle/80 transition-colors hover:bg-surface-elevated/50"
+                        key={`${row.kind}-${row.id}`}
+                        onClick={() => setSelectedId(row.id)}
+                        className={`cursor-pointer border-b border-border-subtle/80 transition-colors last:border-b-0 hover:bg-surface-elevated/60 ${
+                          isSelected ? "bg-surface-elevated/80" : ""
+                        }`}
                       >
-                        <td className="px-5 py-4">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <Avatar initials={initials(row.name)} size="sm" />
-                            <div className="min-w-0">
-                              <p className="truncate font-semibold text-text-primary">
-                                {row.name}
-                              </p>
-                              <p className="truncate text-[12px] text-text-muted">
-                                {row.email}
-                              </p>
-                            </div>
-                          </div>
+                        <td className="px-5 py-3.5">
+                          <PersonCell row={row} isYou={isYou} />
                         </td>
-                        <td className="px-4 py-4">
-                          <RolePill role={row.role.name} />
+                        <td className="px-4 py-3.5">
+                          <RolePill role={rowRoleName(row)} />
                         </td>
-                        <td className="px-4 py-4">
-                          {row.status === "active" ? (
-                            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-brand-primary">
-                              <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
-                              Active
-                            </span>
-                          ) : row.status === "disabled" ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-sm bg-danger/10 px-2 py-0.5 text-[11px] font-semibold text-danger">
-                              Disabled
-                            </span>
+                        <td className="px-4 py-3.5">
+                          <StatusMark status={row.status} />
+                        </td>
+                        <td className="px-4 py-3.5">
+                          {row.kind === "member" ? (
+                            <MfaMark on={row.mfa} />
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 rounded-sm bg-warning/10 px-2 py-0.5 text-[11px] font-semibold text-warning">
-                              Unverified
+                            <span className="text-text-muted">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5 text-text-muted">
+                          {row.kind === "member" ? (
+                            <time dateTime={row.joinedAt} title={new Date(row.joinedAt).toLocaleString()}>
+                              {formatJoined(row.joinedAt)}
+                            </time>
+                          ) : (
+                            <span title={new Date(row.expiresAt).toLocaleString()}>
+                              Expires {formatJoined(row.expiresAt)}
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-4">
-                          {row.mfa ? (
-                            <span className="inline-flex text-brand-primary" title="MFA enabled">
-                              <IconSecurity className="h-4 w-4" />
-                            </span>
-                          ) : (
-                            <span className="text-[12px] text-text-muted">Off</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-text-muted">
-                          {new Date(row.joinedAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-4 py-4">
+                        <td
+                          className="px-4 py-3.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <RowActionsMenu
-                            items={[
-                              {
-                                id: "copy",
-                                label: "Copy email",
-                                onSelect: () => void copyEmail(row.email),
-                              },
-                              ...(canChangeRole &&
-                              canManageTarget(row.role.systemKey, row.userId)
-                                ? [
-                                    {
-                                      id: "role",
-                                      label: "Change role",
-                                      onSelect: () =>
-                                        setRoleEdit({
-                                          id: row.id,
-                                          name: row.name,
-                                          roleId: row.role.id,
-                                          roleName: row.role.name,
-                                        }),
-                                    },
-                                  ]
-                                : []),
-                              ...(canDisable &&
-                              canManageTarget(row.role.systemKey, row.userId)
-                                ? [
-                                    row.status === "disabled"
-                                      ? {
-                                          id: "enable",
-                                          label: "Enable member",
-                                          onSelect: () =>
-                                            void onEnableMember({
-                                              id: row.id,
-                                              name: row.name,
-                                            }),
-                                        }
-                                      : {
-                                          id: "disable",
-                                          label: "Disable member",
-                                          onSelect: () =>
-                                            setDisableTarget({
-                                              id: row.id,
-                                              name: row.name,
-                                            }),
-                                        },
-                                  ]
-                                : []),
-                              ...(canRemove &&
-                              canManageTarget(row.role.systemKey, row.userId)
-                                ? [
-                                    {
-                                      id: "remove",
-                                      label: "Delete member",
-                                      tone: "danger" as const,
-                                      onSelect: () =>
-                                        setRemoveTarget({
-                                          id: row.id,
-                                          name: row.name,
-                                        }),
-                                    },
-                                  ]
-                                : []),
-                            ]}
+                            items={
+                              row.kind === "member"
+                                ? memberActions(row)
+                                : inviteActions(row)
+                            }
                           />
                         </td>
                       </tr>
-                    ) : (
-                      <tr
-                        key={`i-${row.id}`}
-                        className="border-b border-border-subtle/80 transition-colors hover:bg-surface-elevated/50"
-                      >
-                        <td className="px-5 py-4">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <Avatar
-                              initials={row.email.slice(0, 2).toUpperCase()}
-                              size="sm"
-                            />
-                            <div className="min-w-0">
-                              <p className="truncate font-semibold text-text-primary">
-                                Pending invite
-                              </p>
-                              <p className="truncate text-[12px] text-text-muted">
-                                {row.email}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <RolePill role={row.roleName} />
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-warning">
-                            <span className="h-1.5 w-1.5 rounded-full bg-warning" />
-                            Invited
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-text-muted">—</td>
-                        <td className="px-4 py-4 text-[12px] text-text-muted">
-                          Exp. {new Date(row.expiresAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-4 py-4">
-                          <RowActionsMenu
-                            items={[
-                              {
-                                id: "copy",
-                                label: "Copy email",
-                                onSelect: () => void copyEmail(row.email),
-                              },
-                              ...(canInvite
-                                ? [
-                                    {
-                                      id: "resend",
-                                      label: "Resend invite",
-                                      tone: "brand" as const,
-                                      disabled: resendInvite.isPending,
-                                      onSelect: () =>
-                                        void onResend(row.id, row.email),
-                                    },
-                                    {
-                                      id: "revoke",
-                                      label: "Revoke invite",
-                                      tone: "danger" as const,
-                                      disabled: revokeInvite.isPending,
-                                      onSelect: () =>
-                                        void onRevoke(row.id, row.email),
-                                    },
-                                  ]
-                                : []),
-                            ]}
-                          />
-                        </td>
-                      </tr>
-                    ),
-                  )}
-                  {filtered.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-5 py-12 text-center text-text-muted"
-                      >
-                        No members match your filters.
-                      </td>
-                    </tr>
-                  ) : null}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-          )}
 
-          <div className="flex items-center justify-between border-t border-border-subtle px-5 py-3 text-[12px] text-text-muted">
-            <span>
-              Showing {filtered.length} of {rows.length} entries
-            </span>
-          </div>
-        </section>
-
-        {/* Sidebar */}
-        <aside className="flex flex-col gap-4">
-          <section className="rounded-md border border-border-subtle bg-surface-card p-4 shadow-card">
-            <h2 className="text-[13px] font-semibold text-text-primary">
-              Invite Member
-            </h2>
-            <p className="mt-1 text-[12px] text-text-muted">
-              Send an email invite with a workspace role.
-            </p>
-            <div className="mt-3 space-y-2.5">
-              <input
-                type="email"
-                value={sidebarEmail}
-                onChange={(e) => setSidebarEmail(e.target.value)}
-                placeholder="name@company.com"
-                disabled={!canInvite}
-                className="h-10 w-full rounded-sm border border-border-default bg-background-secondary px-3 text-[13px] text-text-primary outline-none placeholder:text-text-muted focus:border-brand-primary focus:shadow-focus disabled:opacity-50"
-              />
-              <select
-                value={sidebarRoleId}
-                onChange={(e) => setSidebarRoleId(e.target.value)}
-                disabled={!canInvite || inviteableRoles.length === 0}
-                className="h-10 w-full rounded-sm border border-border-default bg-background-secondary px-3 text-[13px] text-text-primary outline-none focus:border-brand-primary disabled:opacity-50"
-              >
-                {inviteableRoles.length === 0 ? (
-                  <option value="">Loading roles…</option>
-                ) : (
-                  inviteableRoles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name}
-                    </option>
-                  ))
-                )}
-              </select>
-              <button
-                type="button"
-                onClick={() =>
-                  openInvite({
-                    email: sidebarEmail.trim() || undefined,
-                    roleId: sidebarRoleId || undefined,
-                  })
-                }
-                className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-sm bg-brand-primary text-[13px] font-semibold text-brand-on-primary hover:bg-brand-primary-hover"
-              >
-                Send Invitation
-              </button>
-            </div>
-          </section>
-
-          <section className="rounded-md border border-border-subtle bg-surface-card p-4 shadow-card">
-            <h2 className="text-[13px] font-semibold text-text-primary">
-              Role Distribution
-            </h2>
-            <div className="mt-4 flex items-center gap-4">
-              <RoleDonut
-                owner={roleCounts.owner}
-                admin={roleCounts.admin}
-                member={roleCounts.member}
-                total={totalForChart}
-              />
-              <ul className="space-y-1.5 text-[12px]">
-                {roleCounts.owner > 0 ? (
-                  <li className="flex items-center gap-2 text-text-secondary">
-                    <span className="h-2 w-2 rounded-full bg-brand-primary" />
-                    Owner {Math.round((roleCounts.owner / totalForChart) * 100)}%
+            <ul className="m-0 list-none divide-y divide-border-subtle p-0 md:hidden">
+              {paged.map((row) => {
+                const isYou =
+                  row.kind === "member" && row.userId === user.id;
+                return (
+                  <li key={`m-${row.kind}-${row.id}`}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(row.id)}
+                      className="flex w-full items-start gap-3 px-4 py-3.5 text-left hover:bg-surface-elevated/60"
+                    >
+                      <PersonCell row={row} isYou={isYou} />
+                      <IconChevronRight className="mt-2 h-4 w-4 shrink-0 text-text-muted" />
+                    </button>
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <RolePill role={rowRoleName(row)} />
+                        <StatusMark status={row.status} />
+                        {row.kind === "member" ? <MfaMark on={row.mfa} /> : null}
+                      </div>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <RowActionsMenu
+                          items={
+                            row.kind === "member"
+                              ? memberActions(row)
+                              : inviteActions(row)
+                          }
+                        />
+                      </div>
+                    </div>
                   </li>
-                ) : null}
-                {roleCounts.admin > 0 ? (
-                  <li className="flex items-center gap-2 text-text-secondary">
-                    <span className="h-2 w-2 rounded-full bg-purple" />
-                    Admin {Math.round((roleCounts.admin / totalForChart) * 100)}%
-                  </li>
-                ) : (
-                  <li className="text-[11px] text-text-muted">
-                    Admin — unassigned until you invite someone
-                  </li>
-                )}
-                {roleCounts.member > 0 ? (
-                  <li className="flex items-center gap-2 text-text-secondary">
-                    <span className="h-2 w-2 rounded-full bg-border-default" />
-                    Other / custom{" "}
-                    {Math.round((roleCounts.member / totalForChart) * 100)}%
-                  </li>
-                ) : null}
-              </ul>
-            </div>
-          </section>
-
-          <section className="rounded-md border border-border-subtle bg-surface-card p-4 shadow-card">
-            <h2 className="text-[13px] font-semibold text-text-primary">
-              Member Activity
-            </h2>
-            <ul className="mt-3 space-y-2 text-[12px] text-text-secondary">
-              <li>
-                <span className="font-semibold text-text-primary">
-                  {
-                    members.filter((m) => {
-                      const d = Date.now() - new Date(m.createdAt).getTime();
-                      return d < 30 * 24 * 60 * 60 * 1000;
-                    }).length
-                  }
-                </span>{" "}
-                joined this month
-              </li>
-              <li>
-                <span className="font-semibold text-text-primary">
-                  {stats.active}
-                </span>{" "}
-                verified accounts
-              </li>
-              <li>
-                <span className="font-semibold text-text-primary">
-                  {stats.pending}
-                </span>{" "}
-                pending invitations
-              </li>
+                );
+              })}
             </ul>
-          </section>
-        </aside>
-      </div>
+          </>
+        )}
+
+        {!isBooting && filtered.length > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle px-4 py-3 text-[12px] text-text-muted">
+            <span>
+              {filtered.length} {filtered.length === 1 ? "person" : "people"}
+              {query || roleFilter !== "all" || tab !== "all"
+                ? ` · filtered from ${rows.length}`
+                : null}
+            </span>
+            {pageCount > 1 ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={safePage <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="h-8 rounded-sm border border-border-default px-2.5 font-semibold text-text-secondary hover:border-brand-primary hover:text-brand-primary disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <span className="tabular-nums">
+                  {safePage} / {pageCount}
+                </span>
+                <button
+                  type="button"
+                  disabled={safePage >= pageCount}
+                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                  className="h-8 rounded-sm border border-border-default px-2.5 font-semibold text-text-secondary hover:border-brand-primary hover:text-brand-primary disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+
+      {selected ? (
+        <MemberDrawer
+          row={selected}
+          isYou={selected.kind === "member" && selected.userId === user.id}
+          actions={
+            selected.kind === "member"
+              ? memberActions(selected)
+              : inviteActions(selected)
+          }
+          onClose={() => setSelectedId(null)}
+        />
+      ) : null}
 
       <InviteMemberModal
         open={inviteOpen}
@@ -965,16 +980,12 @@ export function MembersPage() {
             }
           }}
         >
-          <div className="w-full max-w-sm rounded-md border border-border-subtle bg-surface-card p-5 shadow-card">
-            <h2 className="text-[1.05rem] font-semibold text-text-primary">
-              Change role
-            </h2>
-            <p className="mt-2 text-[13px] text-text-secondary">
-              Update access for{" "}
-              <span className="font-semibold text-text-primary">
-                {roleEdit.name}
-              </span>
-              .
+          <div className="w-full max-w-sm rounded-lg border border-border-subtle bg-surface-elevated p-5 shadow-elevated">
+            <h2 className="text-card font-semibold text-text-primary">Change role</h2>
+            <p className="mt-2 text-small text-text-secondary">
+              This changes what{" "}
+              <span className="font-semibold text-text-primary">{roleEdit.name}</span>{" "}
+              can read, reveal, and approve. Owner cannot be assigned here.
             </p>
             <div className="mt-4 max-h-56 space-y-2 overflow-y-auto">
               {inviteableRoles.length === 0 ? (
@@ -994,7 +1005,7 @@ export function MembersPage() {
                     className={`w-full rounded-sm border px-3 py-2 text-left text-[13px] font-semibold ${
                       roleEdit.roleId === role.id
                         ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
-                        : "border-border-default text-text-secondary"
+                        : "border-border-default text-text-secondary hover:border-border-subtle"
                     }`}
                   >
                     {role.name}
@@ -1033,11 +1044,11 @@ export function MembersPage() {
             <span className="font-semibold text-text-primary">
               {disableTarget?.name}
             </span>
-            ? They will be signed out and cannot use the workspace until you
-            enable them again.
+            ? They will be signed out immediately and cannot use the workspace
+            until you enable them again. Secrets stay in place.
           </>
         }
-        confirmLabel="Disable"
+        confirmLabel="Disable access"
         danger
         loading={disableMember.isPending}
         onClose={() => setDisableTarget(null)}
@@ -1053,117 +1064,383 @@ export function MembersPage() {
             <span className="font-semibold text-text-primary">
               {removeTarget?.name}
             </span>{" "}
-            from this workspace? They will be signed out immediately. Old invite
-            links stop working — they need a new invitation to join again.
+            from this workspace? They are signed out now. Old invite links stop
+            working — they need a new invitation to return.
           </>
         }
-        confirmLabel="Delete"
+        confirmLabel="Delete member"
         danger
         loading={removeMember.isPending}
         onClose={() => setRemoveTarget(null)}
         onConfirm={() => void onConfirmRemove()}
       />
+
+      <ConfirmDialog
+        open={Boolean(revokeTarget)}
+        title="Revoke invitation"
+        description={
+          <>
+            Revoke the invite to{" "}
+            <span className="font-semibold text-text-primary">
+              {revokeTarget?.email}
+            </span>
+            ? The link in their email will stop working.
+          </>
+        }
+        confirmLabel="Revoke invite"
+        danger
+        loading={revokeInvite.isPending}
+        onClose={() => setRevokeTarget(null)}
+        onConfirm={() => {
+          if (revokeTarget) void onRevoke(revokeTarget.id, revokeTarget.email);
+        }}
+      />
     </div>
   );
 }
 
-function StatCard({
+function PersonCell({ row, isYou }: { row: TableRow; isYou: boolean }) {
+  const name = row.kind === "member" ? row.name : "Pending invite";
+  const email = row.email;
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <Avatar
+        initials={
+          row.kind === "member"
+            ? initials(row.name)
+            : row.email.slice(0, 2).toUpperCase()
+        }
+        size="sm"
+      />
+      <div className="min-w-0">
+        <p className="flex items-center gap-2 truncate font-semibold text-text-primary">
+          <span className="truncate">{name}</span>
+          {isYou ? (
+            <span className="rounded-xs bg-surface-elevated px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-text-muted uppercase">
+              You
+            </span>
+          ) : null}
+        </p>
+        <p className="truncate text-[12px] text-text-muted">{email}</p>
+      </div>
+    </div>
+  );
+}
+
+function RolePill({ role }: { role: string }) {
+  const key = role.trim().toLowerCase();
+  if (key === "owner") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-xs border border-brand-primary/35 bg-brand-primary/10 px-2 py-0.5 text-[11px] font-semibold text-brand-primary">
+        <IconSecurity className="h-3 w-3" />
+        {role}
+      </span>
+    );
+  }
+  if (key === "admin") {
+    return (
+      <span className="inline-flex items-center rounded-xs bg-purple/15 px-2 py-0.5 text-[11px] font-semibold text-purple">
+        {role}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-xs bg-surface-elevated px-2 py-0.5 text-[11px] font-semibold text-text-secondary">
+      {role}
+    </span>
+  );
+}
+
+function StatusMark({ status }: { status: TableRow["status"] }) {
+  if (status === "active") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-text-primary">
+        <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
+        Active
+      </span>
+    );
+  }
+  if (status === "disabled") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-danger">
+        <span className="h-1.5 w-1.5 rounded-full bg-danger" />
+        Disabled
+      </span>
+    );
+  }
+  if (status === "unverified") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-warning">
+        <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+        Unverified
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-warning">
+      <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+      Invited
+    </span>
+  );
+}
+
+function MfaMark({ on }: { on: boolean }) {
+  if (on) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[12px] text-text-primary" title="Multi-factor authentication is on">
+        <IconCheck className="h-3.5 w-3.5 text-brand-primary" />
+        On
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[12px] text-text-secondary" title="Multi-factor authentication is off">
+      <IconWarning className="h-3.5 w-3.5 text-warning" />
+      Off
+    </span>
+  );
+}
+
+function HygieneChip({
   label,
-  value,
-  hint,
-  icon,
-  iconBg,
+  tone,
+  onClick,
 }: {
   label: string;
-  value: string;
-  hint: ReactNode;
-  icon: ReactNode;
-  iconBg: string;
+  tone: "warning" | "danger" | "info";
+  onClick: () => void;
 }) {
+  const map = {
+    warning: "border-warning/30 bg-warning/10 text-warning",
+    danger: "border-danger/30 bg-danger/10 text-danger",
+    info: "border-info/30 bg-info/10 text-info",
+  } as const;
   return (
-    <div className="rounded-md border border-border-subtle bg-surface-card p-4 shadow-card">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="text-[12px] font-medium text-text-muted">{label}</p>
-          <p className="mt-1 text-[1.5rem] font-bold tracking-tight text-text-primary">
-            {value}
-          </p>
-          <div className="mt-1 text-[11px] text-text-secondary">{hint}</div>
-        </div>
-        <span
-          className={`inline-flex h-9 w-9 items-center justify-center rounded-sm ${iconBg}`}
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center rounded-xs border px-2 py-1 text-[11px] font-semibold ${map[tone]}`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function DirectorySkeleton() {
+  return (
+    <div className="px-4 py-2" aria-busy="true" aria-label="Loading members">
+      {Array.from({ length: 6 }, (_, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-3 border-b border-border-subtle py-3.5 last:border-b-0"
         >
-          {icon}
-        </span>
+          <div className="h-7 w-7 animate-pulse rounded-full bg-surface-elevated" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-40 animate-pulse rounded-sm bg-surface-elevated" />
+            <div className="h-2.5 w-56 animate-pulse rounded-sm bg-background-secondary" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyDirectory({
+  hasPeople,
+  canInvite,
+  onInvite,
+  onClear,
+}: {
+  hasPeople: boolean;
+  canInvite: boolean;
+  onInvite: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="px-6 py-16 text-center">
+      <span className="inline-flex h-12 w-12 items-center justify-center rounded-sm border border-border-subtle bg-background-secondary text-text-secondary">
+        {hasPeople ? (
+          <IconSearch className="h-6 w-6" />
+        ) : (
+          <IconUser className="h-6 w-6" />
+        )}
+      </span>
+      <h2 className="mt-4 text-card font-semibold text-text-primary">
+        {hasPeople ? "No one matches these filters" : "No one else is in this workspace"}
+      </h2>
+      <p className="mx-auto mt-2 max-w-md text-small text-text-secondary">
+        {hasPeople
+          ? "Try another name, role, or list. Filters only hide rows — they do not change access."
+          : "Invite a teammate when you need someone else to manage vaults, review access, or operate secrets."}
+      </p>
+      <div className="mt-4 flex justify-center gap-2">
+        {hasPeople ? (
+          <button
+            type="button"
+            onClick={onClear}
+            className="inline-flex h-9 items-center rounded-sm border border-border-default px-3.5 text-[13px] font-semibold text-text-primary hover:border-brand-primary hover:text-brand-primary"
+          >
+            Clear filters
+          </button>
+        ) : canInvite ? (
+          <button
+            type="button"
+            onClick={onInvite}
+            className="inline-flex h-9 items-center gap-1.5 rounded-sm bg-brand-primary px-3.5 text-[13px] font-semibold text-brand-on-primary hover:bg-brand-primary-hover"
+          >
+            <IconPlus className="h-4 w-4" />
+            Invite member
+          </button>
+        ) : null}
       </div>
     </div>
   );
 }
 
-function RoleDonut({
-  owner,
-  admin,
-  member,
-  total,
+function MemberDrawer({
+  row,
+  isYou,
+  actions,
+  onClose,
 }: {
-  owner: number;
-  admin: number;
-  member: number;
-  total: number;
+  row: TableRow;
+  isYou: boolean;
+  actions: ActionItem[];
+  onClose: () => void;
 }) {
-  const r = 36;
-  const c = 2 * Math.PI * r;
-  const ownerLen = (owner / total) * c;
-  const adminLen = (admin / total) * c;
-  const memberLen = (member / total) * c;
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const title = row.kind === "member" ? row.name : row.email;
 
   return (
-    <div className="relative h-[88px] w-[88px] shrink-0">
-      <svg className="h-full w-full -rotate-90" viewBox="0 0 88 88" aria-hidden>
-        <circle
-          cx="44"
-          cy="44"
-          r={r}
-          fill="none"
-          stroke="var(--color-border-subtle)"
-          strokeWidth="8"
-        />
-        <circle
-          cx="44"
-          cy="44"
-          r={r}
-          fill="none"
-          stroke="var(--color-brand-primary)"
-          strokeWidth="8"
-          strokeDasharray={`${ownerLen} ${c - ownerLen}`}
-          strokeDashoffset={0}
-        />
-        <circle
-          cx="44"
-          cy="44"
-          r={r}
-          fill="none"
-          stroke="var(--color-purple)"
-          strokeWidth="8"
-          strokeDasharray={`${adminLen} ${c - adminLen}`}
-          strokeDashoffset={-ownerLen}
-        />
-        <circle
-          cx="44"
-          cy="44"
-          r={r}
-          fill="none"
-          stroke="var(--color-border-default)"
-          strokeWidth="8"
-          strokeDasharray={`${memberLen} ${c - memberLen}`}
-          strokeDashoffset={-(ownerLen + adminLen)}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[15px] font-bold text-text-primary">
-          {owner + admin + member}
-        </span>
-      </div>
+    <div className="fixed inset-0 z-50 flex justify-end" role="presentation">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/50"
+        aria-label="Close member details"
+        onClick={onClose}
+      />
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="member-drawer-title"
+        className="relative flex h-full w-full max-w-md flex-col border-l border-border-subtle bg-surface-elevated shadow-elevated"
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-border-subtle px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-label font-medium tracking-[0.08em] text-text-muted uppercase">
+              {row.kind === "invite" ? "Invitation" : "Member"}
+            </p>
+            <h2
+              id="member-drawer-title"
+              className="mt-1 truncate text-card font-semibold text-text-primary"
+            >
+              {title}
+            </h2>
+            {isYou ? (
+              <p className="mt-1 text-[12px] text-text-muted">This is your account.</p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-text-muted hover:bg-surface-card hover:text-text-primary focus-visible:outline-none focus-visible:shadow-focus"
+            aria-label="Close"
+          >
+            <IconX className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+          <dl className="space-y-4 text-small">
+            <DrawerField label="Email" value={row.email} />
+            <DrawerField label="Role" value={<RolePill role={rowRoleName(row)} />} />
+            <DrawerField label="Status" value={<StatusMark status={row.status} />} />
+            {row.kind === "member" ? (
+              <>
+                <DrawerField label="MFA" value={<MfaMark on={row.mfa} />} />
+                <DrawerField
+                  label="Joined"
+                  value={
+                    <time dateTime={row.joinedAt}>
+                      {new Date(row.joinedAt).toLocaleString()}
+                    </time>
+                  }
+                />
+              </>
+            ) : (
+              <DrawerField
+                label="Invite expires"
+                value={new Date(row.expiresAt).toLocaleString()}
+              />
+            )}
+          </dl>
+
+          {row.kind === "member" && !row.mfa && row.status !== "disabled" ? (
+            <p className="mt-5 rounded-sm border border-warning/30 bg-warning/10 px-3 py-2.5 text-[12px] leading-relaxed text-text-secondary">
+              <span className="font-semibold text-warning">MFA is off. </span>
+              This person can sign in with password only. Ask them to enable MFA
+              from Account security before they handle production secrets.
+            </p>
+          ) : null}
+
+          {row.kind === "invite" ? (
+            <p className="mt-5 flex items-start gap-2 rounded-sm border border-border-subtle bg-background-secondary px-3 py-2.5 text-[12px] leading-relaxed text-text-secondary">
+              <IconMail className="mt-0.5 h-4 w-4 shrink-0 text-text-muted" />
+              They have not joined yet. Revoke the invite if the address is
+              wrong or the person should not receive access.
+            </p>
+          ) : null}
+        </div>
+
+        <div className="border-t border-border-subtle px-5 py-4">
+          <p className="mb-2 text-label font-medium text-text-muted">Actions</p>
+          <div className="flex flex-col gap-1.5">
+            {actions.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                disabled={item.disabled}
+                onClick={() => {
+                  item.onSelect();
+                  if (item.id !== "copy") onClose();
+                }}
+                className={`rounded-sm border px-3 py-2 text-left text-[13px] font-semibold disabled:opacity-40 ${
+                  item.tone === "danger"
+                    ? "border-danger/40 text-danger hover:bg-danger/10"
+                    : item.tone === "brand"
+                      ? "border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10"
+                      : "border-border-default text-text-primary hover:bg-surface-card"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          {row.kind === "member" && isYou ? (
+            <p className="mt-3 text-[11px] text-text-muted">
+              You cannot disable, delete, or change the role of your own
+              membership from here.
+            </p>
+          ) : null}
+        </div>
+      </aside>
     </div>
   );
 }
+
+function DrawerField({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div>
+      <dt className="text-label font-medium text-text-muted">{label}</dt>
+      <dd className="mt-1 text-text-primary">{value}</dd>
+    </div>
+  );
+}
+

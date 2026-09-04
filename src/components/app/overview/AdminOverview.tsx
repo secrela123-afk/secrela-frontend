@@ -11,13 +11,17 @@ import {
   featureUpgradeLabel,
   recommendedUpgradeForFeature,
 } from "../../../lib/plan-entitlements";
+import { BILLING_PATH } from "../../../lib/routes";
 import {
   IconAccess,
+  IconClipboard,
   IconKey,
+  IconListView,
   IconLock,
+  IconMembers,
   IconPlus,
   IconSecurity,
-  IconUsers,
+  IconUser,
   IconVault,
   IconWarning,
 } from "../icons";
@@ -72,29 +76,40 @@ function riskBarWidth(level: string): string {
   return "20%";
 }
 
-function ScoreRing({ score }: { score: number }) {
-  const r = 36;
+function ScoreRing({ score }: { score: number | null }) {
+  const r = 32;
   const c = 2 * Math.PI * r;
-  const offset = c * (1 - score / 100);
+  const offset = score == null ? c : c * (1 - Math.min(Math.max(score, 0), 100) / 100);
   return (
-    <div className="relative h-[88px] w-[88px]">
-      <svg className="h-full w-full -rotate-90" viewBox="0 0 88 88" aria-hidden="true">
-        <circle cx="44" cy="44" r={r} fill="none" stroke="var(--color-border-subtle)" strokeWidth="7" />
+    <div className="relative h-20 w-20 shrink-0">
+      <svg className="h-full w-full -rotate-90" viewBox="0 0 80 80" aria-hidden="true">
         <circle
-          cx="44"
-          cy="44"
+          cx="40"
+          cy="40"
+          r={r}
+          fill="none"
+          stroke="var(--color-border-subtle)"
+          strokeWidth="8"
+        />
+        <circle
+          cx="40"
+          cy="40"
           r={r}
           fill="none"
           stroke="var(--color-brand-primary)"
-          strokeWidth="7"
+          strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={offset}
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[15px] font-bold text-text-primary">{score}</span>
-        <span className="text-[10px] text-text-muted">/100</span>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="flex items-baseline">
+          <span className="text-[15px] font-bold leading-none text-text-primary">
+            {score != null ? score : "—"}
+          </span>
+          <span className="text-[10px] font-medium leading-none text-text-muted">/100</span>
+        </span>
       </div>
     </div>
   );
@@ -211,82 +226,79 @@ export function AdminOverview() {
         <StatusBadge tone="brand">Live</StatusBadge>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        <Panel bodyClassName="p-4">
-          <div className="flex items-center gap-3">
-            {score != null ? (
-              <ScoreRing score={score} />
-            ) : (
-              <div className="flex h-[88px] w-[88px] items-center justify-center rounded-full border border-border-subtle text-[12px] text-text-muted">
-                —
-              </div>
-            )}
-            <div>
-              <p className="text-[12px] font-medium text-text-muted">Security Score</p>
-              <p className="mt-0.5 text-[15px] font-semibold text-text-primary">
-                {score != null ? `${score}/100` : "Unavailable"}
-              </p>
-              <p className="mt-0.5 text-[12px] font-medium text-brand-primary">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <Panel bodyClassName="p-5">
+          <div className="flex h-full items-center gap-4">
+            <ScoreRing score={score} />
+            <div className="min-w-0">
+              <p className="text-label font-medium text-text-muted">Security Score</p>
+              <p className="mt-1 text-lg font-semibold leading-tight text-brand-primary">
                 {score != null
                   ? label
                   : canViewSecurity
-                    ? "Requires audit access"
-                    : "Upgrade to unlock"}
+                    ? "Unavailable"
+                    : "Locked"}
               </p>
+              {!canViewSecurity ? (
+                <Link
+                  href={BILLING_PATH}
+                  className="mt-1 block text-[11px] text-text-muted no-underline hover:text-brand-primary"
+                >
+                  Upgrade to unlock full score
+                </Link>
+              ) : null}
             </div>
           </div>
         </Panel>
 
         <MetricStat
           label="Total Secrets"
+          labelIcon={<IconLock className="h-3.5 w-3.5" />}
           value={metrics.totalSecrets}
           hint="Across all vaults"
-          icon={<IconLock className="h-4 w-4" />}
-          iconClass="text-info bg-info/10"
+          tileIcon={<IconLock className="h-4 w-4" />}
+          tileClass="bg-info/15 text-info"
         />
         <MetricStat
           label="Vaults"
+          labelIcon={<IconVault className="h-3.5 w-3.5" />}
           value={metrics.vaults}
           hint="Organization vaults"
-          icon={<IconVault className="h-4 w-4" />}
-          iconClass="text-brand-primary bg-brand-primary/10"
+          tileIcon={<IconVault className="h-4 w-4" />}
+          tileClass="bg-brand-primary/15 text-brand-primary"
         />
         <MetricStat
           label="Members"
+          labelIcon={<IconUser className="h-3.5 w-3.5" />}
           value={metrics.members}
           hint="Active memberships"
-          icon={<IconUsers className="h-4 w-4" />}
-          iconClass="text-purple bg-purple/10"
+          tileIcon={<IconMembers className="h-4 w-4" />}
+          tileClass="bg-purple/15 text-purple"
         />
         <MetricStat
           label="Access Requests"
+          labelIcon={<IconClipboard className="h-3.5 w-3.5" />}
           value={metrics.accessRequestsTotal}
           hint={`${metrics.accessPending} pending`}
           hintClass="text-warning"
-          icon={<IconKey className="h-4 w-4" />}
-          iconClass="text-warning bg-warning/10"
+          tileIcon={<IconKey className="h-4 w-4" />}
+          tileClass="bg-warning/15 text-warning"
         />
-        <Panel bodyClassName="p-4">
-          <div className="flex h-full flex-col justify-between gap-2">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[12px] font-medium text-text-muted">High Risk Secrets</p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums text-text-primary">
-                  {metrics.highRiskSecrets}
-                </p>
-              </div>
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-sm bg-danger/10 text-danger">
-                <IconWarning className="h-4 w-4" />
-              </span>
-            </div>
+        <MetricStat
+          label="High Risk Secrets"
+          labelIcon={<IconListView className="h-3.5 w-3.5" />}
+          value={metrics.highRiskSecrets}
+          footer={
             <Link
               href="/app/secrets"
-              className="text-[12px] font-semibold text-brand-primary no-underline hover:text-brand-primary-hover"
+              className="text-[11px] font-semibold text-brand-primary no-underline hover:text-brand-primary-hover"
             >
               View all →
             </Link>
-          </div>
-        </Panel>
+          }
+          tileIcon={<IconWarning className="h-4 w-4" />}
+          tileClass="bg-danger/15 text-danger"
+        />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
@@ -374,7 +386,7 @@ export function AdminOverview() {
                 description={`Your ${snapshot.planLabel} workspace does not include Security Center. ${
                   featureUpgradeLabel(snapshot, "securityCenter")
                     ? `Upgrade to ${featureUpgradeLabel(snapshot, "securityCenter")} to unlock score, findings, and risk signals.`
-                    : "Contact sales for Enterprise access."
+                    : "View plans to upgrade."
                 }`}
                 snapshot={{
                   ...snapshot,
@@ -578,31 +590,51 @@ export function AdminOverview() {
 
 function MetricStat({
   label,
+  labelIcon,
   value,
   hint,
   hintClass = "text-text-muted",
-  icon,
-  iconClass,
+  footer,
+  tileIcon,
+  tileClass,
 }: {
   label: string;
+  labelIcon: ReactNode;
   value: number;
-  hint: string;
+  hint?: string;
   hintClass?: string;
-  icon: ReactNode;
-  iconClass: string;
+  footer?: ReactNode;
+  tileIcon: ReactNode;
+  tileClass: string;
 }) {
   return (
-    <Panel bodyClassName="p-4">
-      <div className="flex h-full flex-col justify-between gap-2">
-        <div className="flex items-start justify-between">
-          <p className="text-[12px] font-medium text-text-muted">{label}</p>
-          <span className={`inline-flex h-8 w-8 items-center justify-center rounded-sm ${iconClass}`}>
-            {icon}
+    <Panel bodyClassName="p-5">
+      <div className="flex h-full min-h-28 flex-col justify-between gap-6">
+        <div className="flex items-start justify-between gap-3">
+          <p className="flex min-w-0 items-center gap-1.5 text-label font-medium text-text-secondary">
+            <span className="shrink-0 text-brand-primary">{labelIcon}</span>
+            <span className="truncate">{label}</span>
+          </p>
+          <span
+            className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-sm ${tileClass}`}
+          >
+            {tileIcon}
           </span>
         </div>
         <div>
-          <p className="text-2xl font-semibold tabular-nums text-text-primary">{value}</p>
-          <p className={`mt-1 text-[11px] font-medium ${hintClass}`}>{hint}</p>
+          <p className="text-[1.75rem] font-semibold leading-none tabular-nums tracking-tight text-text-primary">
+            {value}
+          </p>
+          {hint || footer ? (
+            <div className="mt-2 flex items-end justify-between gap-2">
+              {hint ? (
+                <p className={`text-[11px] font-medium ${hintClass}`}>{hint}</p>
+              ) : (
+                <span />
+              )}
+              {footer}
+            </div>
+          ) : null}
         </div>
       </div>
     </Panel>

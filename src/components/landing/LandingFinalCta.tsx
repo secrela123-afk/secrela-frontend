@@ -119,11 +119,11 @@ export function LandingFinalCta() {
         </p>
 
         <div
-          className={`mt-8 flex flex-wrap items-center justify-center gap-3 ${rise("delay-300")}`}
+          className={`mt-8 flex w-full flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center ${rise("delay-300")}`}
         >
           <Link
             href={primary.href}
-            className="btn-shine group inline-flex h-12 items-center gap-2 rounded-sm bg-brand-primary px-5 text-[15px] font-semibold text-brand-on-primary shadow-glow-green transition-all duration-fast ease-sv hover:bg-brand-primary-hover hover:shadow-glow-green-strong focus-visible:outline-none focus-visible:shadow-focus"
+            className="btn-shine group inline-flex h-12 w-full items-center justify-center gap-2 rounded-sm bg-brand-primary px-5 text-[15px] font-semibold text-brand-on-primary shadow-glow-green transition-all duration-fast ease-sv hover:bg-brand-primary-hover hover:shadow-glow-green-strong focus-visible:outline-none focus-visible:shadow-focus sm:w-auto"
           >
             {primary.label}
             <ArrowRight className="h-4 w-4 transition-transform duration-fast ease-sv group-hover:translate-x-0.5" />
@@ -131,14 +131,14 @@ export function LandingFinalCta() {
           {session.status === "authed" && !session.hasOrganization ? (
             <Link
               href={APP_HOME}
-              className="inline-flex h-12 items-center justify-center rounded-sm border border-border-default bg-transparent px-5 text-[15px] font-semibold text-text-primary transition-colors duration-fast ease-sv hover:border-brand-primary hover:text-brand-primary focus-visible:outline-none focus-visible:shadow-focus"
+              className="inline-flex h-12 w-full items-center justify-center rounded-sm border border-border-default bg-transparent px-5 text-[15px] font-semibold text-text-primary transition-colors duration-fast ease-sv hover:border-brand-primary hover:text-brand-primary focus-visible:outline-none focus-visible:shadow-focus sm:w-auto"
             >
               Skip to dashboard
             </Link>
           ) : (
             <a
               href="mailto:sales@secrela.com"
-              className="inline-flex h-12 items-center justify-center rounded-sm border border-border-default bg-background-primary/40 px-5 text-[15px] font-semibold text-text-primary backdrop-blur-[2px] transition-colors duration-fast ease-sv hover:border-brand-primary hover:text-brand-primary focus-visible:outline-none focus-visible:shadow-focus"
+              className="inline-flex h-12 w-full items-center justify-center rounded-sm border border-border-default bg-background-primary/40 px-5 text-[15px] font-semibold text-text-primary backdrop-blur-[2px] transition-colors duration-fast ease-sv hover:border-brand-primary hover:text-brand-primary focus-visible:outline-none focus-visible:shadow-focus sm:w-auto"
             >
               Book a demo
             </a>

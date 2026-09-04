@@ -2,11 +2,11 @@
 
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
   type FormEvent,
-  type ReactNode,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -34,55 +34,39 @@ import {
 import { PlanUpgradePrompt } from "../PlanUpgradePrompt";
 import { isOwnerOrAdminRole } from "../../../lib/app-nav";
 import { isQueryBooting } from "../../../lib/query-status";
-import { ConfirmDialog, RowActionsMenu } from "../RowActionsMenu";
+import { ConfirmDialog, type ActionItem } from "../RowActionsMenu";
 import { RequestAccessModal } from "../RequestAccessModal";
 import { useStepUpGate } from "../../security/ReauthModal";
-import { Avatar, PageLoading } from "../ui";
-import {
-  IconAlert,
-  IconChevronDown,
-  IconClock,
-  IconFilter,
-  IconKey,
-  IconLock,
-  IconPlus,
-  IconSearch,
-  IconSecurity,
-  IconSettings,
-  IconVault,
-} from "../icons";
 import { toast } from "../../../stores/toast-store";
+import {
+  FilterChip,
+  NewSecretButton,
+  RISK_OPTIONS,
+  RISK_RANK,
+  SecretsActivity,
+  SecretsAttentionBar,
+  SecretsEmptyState,
+  SecretsErrorState,
+  SecretsInventory,
+  SecretsPagination,
+  SecretsSkeleton,
+  SecretsToolbar,
+  TYPE_LABELS,
+  type SecretSortKey,
+} from "../secrets/secrets-ui";
+import { IconAlert, IconPlus } from "../icons";
 
-const PAGE_SIZE = 8;
-
-const TYPE_LABELS: Record<SecretType, string> = {
-  credential: "Credential",
-  api_key: "API Key",
-  database: "Database",
-  token: "Token",
-  key_pair: "Key Pair",
-  other: "Other",
-};
-
-const RISK_OPTIONS: {
-  value: SecretRiskLevel;
-  label: string;
-  className: string;
-}[] = [
-  { value: "unknown", label: "Unknown", className: "bg-surface-elevated text-text-muted" },
-  { value: "low", label: "Low", className: "bg-brand-primary/15 text-brand-primary" },
-  { value: "medium", label: "Medium", className: "bg-warning/15 text-warning" },
-  { value: "high", label: "High", className: "bg-danger/15 text-danger" },
-];
+const PAGE_SIZE = 12;
 
 /**
- * Secrets hub — metadata list + encrypted create/reveal.
+ * Secrets inventory — encrypted metadata list.
  * Plaintext never appears in the list; reveal uses HIGH step-up.
  */
 export function SecretsPage() {
   const { can, user, role } = useRequiredWorkspace();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchId = useId();
   const entitlementsQuery = usePlanEntitlementsQuery();
   const canCreateByPlan =
     entitlementsQuery.data?.capabilities.createSecret ?? true;
@@ -92,8 +76,9 @@ export function SecretsPage() {
   const canUpdate = can("secret.update");
   const canDelete = can("secret.delete");
   const isReviewer = isOwnerOrAdminRole(role);
-  /** Members (not Owner/Admin) may request temporary access via Reveal. */
   const canRequestAccess = !isReviewer;
+  const canViewAudit =
+    entitlementsQuery.data?.capabilities.viewAuditLogs ?? false;
 
   const secretsQuery = useSecretsQuery();
   const { data, error } = secretsQuery;
@@ -107,16 +92,26 @@ export function SecretsPage() {
   const { runWithStepUp, modal: stepUpModal } = useStepUpGate(user.email);
 
   const [query, setQuery] = useState("");
-  const [vaultFilter, setVaultFilter] = useState("all");
+  const [vaultFilter, setVaultFilter] = useState(
+    () => searchParams.get("vault")?.trim() || "all",
+  );
   const [typeFilter, setTypeFilter] = useState<SecretType | "all">("all");
   const [riskFilter, setRiskFilter] = useState<SecretRiskLevel | "all">("all");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "expired">(
     "all",
   );
+  const [sort, setSort] = useState<SecretSortKey>("updated");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [createMenuOpen, setCreateMenuOpen] = useState(false);
+  const vaultFromUrl = searchParams.get("vault")?.trim() || "";
+
+  useEffect(() => {
+    if (!vaultFromUrl) return;
+    setVaultFilter(vaultFromUrl);
+    setPage(1);
+  }, [vaultFromUrl]);
+
   const [editor, setEditor] = useState<{
     mode: "create" | "edit";
     type?: SecretType;
@@ -135,8 +130,6 @@ export function SecretsPage() {
 
   const secrets = data?.secrets ?? [];
   const summary = data?.summary;
-  const byRisk = data?.byRisk;
-  const byType = data?.byType;
   const recentActivity = data?.recentActivity ?? [];
   const vaults = vaultsData?.vaults ?? [];
   const accessBlock = data?.viewerAccessBlock ?? null;
@@ -150,7 +143,7 @@ export function SecretsPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return secrets.filter((s) => {
+    const list = secrets.filter((s) => {
       if (vaultFilter !== "all" && s.vault.id !== vaultFilter) return false;
       if (typeFilter !== "all" && s.type !== typeFilter) return false;
       if (riskFilter !== "all" && s.riskLevel !== riskFilter) return false;
@@ -163,6 +156,28 @@ export function SecretsPage() {
         s.vault.name.toLowerCase().includes(q)
       );
     });
+
+    list.sort((a, b) => {
+      if (sort === "name") return a.name.localeCompare(b.name);
+      if (sort === "risk") {
+        return RISK_RANK[a.riskLevel] - RISK_RANK[b.riskLevel];
+      }
+      if (sort === "accessed") {
+        const ta = a.lastAccessedAt
+          ? new Date(a.lastAccessedAt).getTime()
+          : 0;
+        const tb = b.lastAccessedAt
+          ? new Date(b.lastAccessedAt).getTime()
+          : 0;
+        return tb - ta;
+      }
+      return (
+        new Date(b.lastUpdatedAt).getTime() -
+        new Date(a.lastUpdatedAt).getTime()
+      );
+    });
+
+    return list;
   }, [
     secrets,
     query,
@@ -171,12 +186,32 @@ export function SecretsPage() {
     riskFilter,
     ownerFilter,
     statusFilter,
+    sort,
   ]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pageStart = (safePage - 1) * PAGE_SIZE;
   const pageRows = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
+  const activeFilterCount = [
+    vaultFilter !== "all",
+    typeFilter !== "all",
+    riskFilter !== "all",
+    ownerFilter !== "all",
+    statusFilter !== "all",
+  ].filter(Boolean).length;
+  const filtersActive = activeFilterCount > 0 || query.trim().length > 0;
+
+  function clearFilters() {
+    setVaultFilter("all");
+    setTypeFilter("all");
+    setRiskFilter("all");
+    setOwnerFilter("all");
+    setStatusFilter("all");
+    setQuery("");
+    setPage(1);
+  }
 
   function openCreate(type: SecretType = "credential") {
     if (!canCreatePermission) {
@@ -200,7 +235,6 @@ export function SecretsPage() {
       toast.warning("Create a vault first", "Secrets must live inside a vault.");
       return;
     }
-    setCreateMenuOpen(false);
     setEditor({ mode: "create", type });
   }
 
@@ -313,7 +347,12 @@ export function SecretsPage() {
           if (err instanceof ApiError && err.message.includes("cancelled")) {
             return;
           }
-          if (secret && canRequestAccess && !isAccessBlocked && !secret.hasPendingAccessRequest) {
+          if (
+            secret &&
+            canRequestAccess &&
+            !isAccessBlocked &&
+            !secret.hasPendingAccessRequest
+          ) {
             toast.warning(
               "Access not ready",
               "Open Reveal to request access again, or wait if approval is still syncing.",
@@ -372,11 +411,6 @@ export function SecretsPage() {
       await deleteSecret.mutateAsync(deleteTarget.id);
       toast.success("Secret deleted", `${deleteTarget.name} was removed.`);
       setDeleteTarget(null);
-      setSelected((prev) => {
-        const next = new Set(prev);
-        next.delete(deleteTarget.id);
-        return next;
-      });
     } catch (err) {
       toast.error(
         "Could not delete secret",
@@ -385,92 +419,61 @@ export function SecretsPage() {
     }
   }
 
-  function toggleRow(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function togglePageAll() {
-    const ids = pageRows.map((r) => r.id);
-    const allSelected = ids.every((id) => selected.has(id));
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (allSelected) ids.forEach((id) => next.delete(id));
-      else ids.forEach((id) => next.add(id));
-      return next;
-    });
+  function rowActions(secret: OrganizationSecret): ActionItem[] {
+    const items: ActionItem[] = [];
+    if (canUpdate) {
+      items.push({
+        id: "edit",
+        label: "Edit metadata",
+        onSelect: () => openEdit(secret),
+      });
+    }
+    if (canDelete) {
+      items.push({
+        id: "delete",
+        label: "Delete",
+        tone: "danger",
+        onSelect: () => setDeleteTarget(secret),
+      });
+    }
+    return items;
   }
 
   if (error) {
     return (
-      <div className="p-4 lg:p-6">
-        <EmptyState
-          title="Could not load secrets"
-          body={
-            error instanceof ApiError
-              ? error.message
-              : "Check your connection and try again."
-          }
-        />
-      </div>
+      <SecretsErrorState
+        message={
+          error instanceof ApiError
+            ? error.message
+            : "Check your connection and try again."
+        }
+        onRetry={() => void secretsQuery.refetch()}
+      />
     );
   }
 
-  const activePct =
-    summary && summary.totalSecrets > 0
-      ? Math.round((summary.activeSecrets / summary.totalSecrets) * 100)
-      : 0;
+  const filterSelectClass =
+    "h-11 w-full rounded-sm border border-border-default bg-background-secondary px-3 text-[13px] font-medium text-text-secondary outline-none focus:border-brand-primary focus:shadow-focus";
 
   return (
-    <div className="p-4 lg:p-6">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[1.375rem] font-semibold tracking-tight text-text-primary sm:text-section">
+    <div className="space-y-8 p-4 lg:p-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="max-w-2xl">
+          <h1 className="text-section font-semibold tracking-tight text-text-primary">
             Secrets
           </h1>
-          <p className="mt-1 max-w-2xl text-small text-text-secondary">
-            View, manage and secure your organization secrets.
+          <p className="mt-1 text-small text-text-secondary">
+            Encrypted company credentials. Values stay sealed until a controlled
+            reveal — never in this list, logs, or URLs.
           </p>
         </div>
-
         {canCreatePermission ? (
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setCreateMenuOpen((o) => !o)}
-              className="inline-flex h-10 items-center gap-1.5 self-start rounded-sm bg-brand-primary px-3.5 text-[13px] font-semibold text-brand-on-primary shadow-glow-green hover:bg-brand-primary-hover"
-            >
-              <IconPlus className="h-4 w-4" />
-              Create Secret
-              <IconChevronDown className="h-3.5 w-3.5 opacity-80" />
-            </button>
-            {createMenuOpen ? (
-              <div className="absolute top-full right-0 z-30 mt-1 w-48 overflow-hidden rounded-md border border-border-subtle bg-surface-elevated py-1 shadow-card">
-                {(Object.keys(TYPE_LABELS) as SecretType[]).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => openCreate(type)}
-                    className="flex w-full px-3 py-2 text-left text-[12px] text-text-secondary hover:bg-surface-card hover:text-text-primary"
-                  >
-                    {TYPE_LABELS[type]}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
+          <NewSecretButton onClick={() => openCreate()} />
         ) : null}
-      </div>
+      </header>
 
-      {entitlementsQuery.data &&
-      !canCreateByPlan &&
-      canCreatePermission ? (
+      {entitlementsQuery.data && !canCreateByPlan && canCreatePermission ? (
         <PlanUpgradePrompt
-          className="mb-5"
           title="Secret limit reached"
           description={`Your ${entitlementsQuery.data.planLabel} plan allows ${formatPlanLimit(entitlementsQuery.data.entitlements.maxSecrets)} secret(s). You are using ${formatPlanUsage(entitlementsQuery.data.usage.secrets, entitlementsQuery.data.entitlements.maxSecrets)}. Upgrade to store more.`}
           snapshot={entitlementsQuery.data}
@@ -478,343 +481,281 @@ export function SecretsPage() {
       ) : null}
 
       {isAccessBlocked ? (
-        <div className="mb-5 flex items-start gap-3 rounded-md border border-warning/40 bg-warning/10 px-3.5 py-3">
+        <div
+          className="flex items-start gap-3 rounded-md border border-warning/40 bg-warning/10 px-4 py-3"
+          role="status"
+        >
           <IconAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <div>
             <p className="text-[13px] font-semibold text-text-primary">
-              Reveal / Request temporarily blocked
+              Reveal and access requests paused
             </p>
             <p className="mt-0.5 text-[12px] text-text-secondary">
-              After 3 consecutive denials, access requests are paused until{" "}
-              {formatBlockUntil(accessBlock?.blockedUntil)}. Then you can request
-              again.
+              After 3 consecutive denials, requests are blocked until{" "}
+              {formatBlockUntil(accessBlock?.blockedUntil)}.
             </p>
           </div>
         </div>
       ) : null}
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Total Secrets"
-          value={isBooting ? "—" : String(summary?.totalSecrets ?? 0)}
-          hint="Across all vaults"
-          icon={<IconLock className="h-4 w-4 text-purple" />}
-          iconBg="bg-purple/10"
+      {!isBooting ? (
+        <SecretsAttentionBar
+          total={summary?.totalSecrets ?? secrets.length}
+          highRisk={summary?.highRiskSecrets ?? 0}
+          expired={summary?.expiredSecrets ?? 0}
+          filteredCount={filtered.length}
+          filtersActive={filtersActive}
+          onHighRisk={() => {
+            setRiskFilter("high");
+            setFiltersOpen(true);
+            setPage(1);
+          }}
+          onExpired={() => {
+            setStatusFilter("expired");
+            setFiltersOpen(true);
+            setPage(1);
+          }}
         />
-        <StatCard
-          label="Active Secrets"
-          value={isBooting ? "—" : String(summary?.activeSecrets ?? 0)}
-          hint={`${activePct}% of total`}
-          icon={<IconSecurity className="h-4 w-4 text-brand-primary" />}
-          iconBg="bg-brand-primary/10"
-        />
-        <StatCard
-          label="High Risk Secrets"
-          value={isBooting ? "—" : String(summary?.highRiskSecrets ?? 0)}
-          hint={<span className="text-warning">Requires attention</span>}
-          icon={<IconAlert className="h-4 w-4 text-warning" />}
-          iconBg="bg-warning/10"
-        />
-        <StatCard
-          label="Expired Secrets"
-          value={isBooting ? "—" : String(summary?.expiredSecrets ?? 0)}
-          hint={
-            <button
-              type="button"
-              className="text-info hover:underline"
-              onClick={() => {
-                setStatusFilter("expired");
-                setPage(1);
-              }}
-            >
-              View expired
-            </button>
-          }
-          icon={<IconClock className="h-4 w-4 text-info" />}
-          iconBg="bg-info/10"
-        />
-      </div>
+      ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="min-w-0 space-y-4">
+      <div className="space-y-3">
+        <SecretsToolbar
+          query={query}
+          onQuery={(value) => {
+            setQuery(value);
+            setPage(1);
+          }}
+          sort={sort}
+          onSort={(value) => {
+            setSort(value);
+            setPage(1);
+          }}
+          filtersOpen={filtersOpen}
+          onToggleFilters={() => setFiltersOpen((o) => !o)}
+          activeFilterCount={activeFilterCount}
+          searchId={searchId}
+        />
+
+        {filtersOpen ? (
+          <div className="rounded-md border border-border-subtle bg-surface-card p-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <label className="block">
+                <span className="mb-1.5 block text-label text-text-secondary">
+                  Vault
+                </span>
+                <select
+                  value={vaultFilter}
+                  onChange={(e) => {
+                    setVaultFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className={filterSelectClass}
+                >
+                  <option value="all">All vaults</option>
+                  {vaults.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-label text-text-secondary">
+                  Type
+                </span>
+                <select
+                  value={typeFilter}
+                  onChange={(e) => {
+                    setTypeFilter(e.target.value as SecretType | "all");
+                    setPage(1);
+                  }}
+                  className={filterSelectClass}
+                >
+                  <option value="all">All types</option>
+                  {(Object.keys(TYPE_LABELS) as SecretType[]).map((t) => (
+                    <option key={t} value={t}>
+                      {TYPE_LABELS[t]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-label text-text-secondary">
+                  Risk
+                </span>
+                <select
+                  value={riskFilter}
+                  onChange={(e) => {
+                    setRiskFilter(e.target.value as SecretRiskLevel | "all");
+                    setPage(1);
+                  }}
+                  className={filterSelectClass}
+                >
+                  <option value="all">All risk levels</option>
+                  {RISK_OPTIONS.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-label text-text-secondary">
+                  Owner
+                </span>
+                <select
+                  value={ownerFilter}
+                  onChange={(e) => {
+                    setOwnerFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className={filterSelectClass}
+                >
+                  <option value="all">All owners</option>
+                  {owners.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-label text-text-secondary">
+                  Status
+                </span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value as "all" | "active" | "expired");
+                    setPage(1);
+                  }}
+                  className={filterSelectClass}
+                >
+                  <option value="all">Active and expired</option>
+                  <option value="active">Active</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        ) : null}
+
+        {activeFilterCount > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-[200px] flex-1">
-              <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-text-muted">
-                <IconSearch className="h-4 w-4" />
-              </span>
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
+            {vaultFilter !== "all" ? (
+              <FilterChip
+                label={`Vault: ${vaults.find((v) => v.id === vaultFilter)?.name ?? "Selected"}`}
+                onClear={() => {
+                  setVaultFilter("all");
                   setPage(1);
                 }}
-                placeholder="Search secrets..."
-                className="h-10 w-full rounded-sm border border-border-default bg-background-secondary py-0 pr-3 pl-9 text-[13px] text-text-primary outline-none placeholder:text-text-muted focus:border-brand-primary focus:shadow-focus"
               />
-            </div>
-            <select
-              value={vaultFilter}
-              onChange={(e) => {
-                setVaultFilter(e.target.value);
-                setPage(1);
-              }}
-              className="h-10 rounded-sm border border-border-default bg-background-secondary px-2.5 text-[12px] font-medium text-text-secondary outline-none focus:border-brand-primary"
-            >
-              <option value="all">All Vaults</option>
-              {vaults.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value as SecretType | "all");
-                setPage(1);
-              }}
-              className="h-10 rounded-sm border border-border-default bg-background-secondary px-2.5 text-[12px] font-medium text-text-secondary outline-none focus:border-brand-primary"
-            >
-              <option value="all">All Types</option>
-              {(Object.keys(TYPE_LABELS) as SecretType[]).map((t) => (
-                <option key={t} value={t}>
-                  {TYPE_LABELS[t]}
-                </option>
-              ))}
-            </select>
-            <select
-              value={riskFilter}
-              onChange={(e) => {
-                setRiskFilter(e.target.value as SecretRiskLevel | "all");
-                setPage(1);
-              }}
-              className="h-10 rounded-sm border border-border-default bg-background-secondary px-2.5 text-[12px] font-medium text-text-secondary outline-none focus:border-brand-primary"
-            >
-              <option value="all">All Risk Levels</option>
-              {RISK_OPTIONS.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={ownerFilter}
-              onChange={(e) => {
-                setOwnerFilter(e.target.value);
-                setPage(1);
-              }}
-              className="h-10 rounded-sm border border-border-default bg-background-secondary px-2.5 text-[12px] font-medium text-text-secondary outline-none focus:border-brand-primary"
-            >
-              <option value="all">All Owners</option>
-              {owners.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-            </select>
+            ) : null}
+            {typeFilter !== "all" ? (
+              <FilterChip
+                label={TYPE_LABELS[typeFilter]}
+                onClear={() => {
+                  setTypeFilter("all");
+                  setPage(1);
+                }}
+              />
+            ) : null}
+            {riskFilter !== "all" ? (
+              <FilterChip
+                label={`Risk: ${riskFilter}`}
+                onClear={() => {
+                  setRiskFilter("all");
+                  setPage(1);
+                }}
+              />
+            ) : null}
+            {ownerFilter !== "all" ? (
+              <FilterChip
+                label={`Owner: ${owners.find((o) => o.id === ownerFilter)?.name ?? "Selected"}`}
+                onClear={() => {
+                  setOwnerFilter("all");
+                  setPage(1);
+                }}
+              />
+            ) : null}
+            {statusFilter !== "all" ? (
+              <FilterChip
+                label={statusFilter === "expired" ? "Expired" : "Active"}
+                onClear={() => {
+                  setStatusFilter("all");
+                  setPage(1);
+                }}
+              />
+            ) : null}
             <button
               type="button"
-              onClick={() => {
-                setVaultFilter("all");
-                setTypeFilter("all");
-                setRiskFilter("all");
-                setOwnerFilter("all");
-                setStatusFilter("all");
-                setQuery("");
-                setPage(1);
-              }}
-              className="inline-flex h-10 items-center gap-1.5 rounded-sm border border-border-default bg-background-secondary px-3 text-[12px] font-medium text-text-secondary hover:border-brand-primary hover:text-brand-primary"
+              onClick={clearFilters}
+              className="h-8 px-2 text-[12px] font-medium text-text-muted hover:text-text-primary focus-visible:outline-none focus-visible:shadow-focus"
             >
-              <IconFilter className="h-3.5 w-3.5" />
-              Filters
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-border-default bg-background-secondary text-text-muted hover:text-text-primary"
-              title="Column settings (soon)"
-            >
-              <IconSettings className="h-4 w-4" />
+              Clear all
             </button>
           </div>
-
-          {isBooting ? (
-            <PageLoading label="Loading secrets…" />
-          ) : filtered.length === 0 ? (
-            <EmptyState
-              title={secrets.length === 0 ? "No secrets yet" : "No matching secrets"}
-              body={
-                secrets.length === 0
-                  ? canCreatePermission
-                    ? "Create your first secret inside a vault."
-                    : "No secrets yet. An Owner or Admin can create secrets for this organization."
-                  : "Try a different search or clear filters."
-              }
-              action={
-                secrets.length === 0 && canCreatePermission ? (
-                  <button
-                    type="button"
-                    onClick={() => openCreate()}
-                    className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-sm bg-brand-primary px-3.5 text-[13px] font-semibold text-brand-on-primary"
-                  >
-                    <IconPlus className="h-3.5 w-3.5" />
-                    Create Secret
-                  </button>
-                ) : null
-              }
-            />
-          ) : (
-            <section className="overflow-visible rounded-md border border-border-subtle bg-surface-card shadow-card">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[980px] border-collapse text-left">
-                  <thead>
-                    <tr className="border-b border-border-subtle text-[11px] font-semibold tracking-wide text-text-muted uppercase">
-                      <th className="w-10 px-3 py-3">
-                        <input
-                          type="checkbox"
-                          checked={
-                            pageRows.length > 0 &&
-                            pageRows.every((r) => selected.has(r.id))
-                          }
-                          onChange={togglePageAll}
-                          className="rounded border-border-default"
-                          aria-label="Select page"
-                        />
-                      </th>
-                      <th className="px-3 py-3">Secret Name</th>
-                      <th className="px-3 py-3">Type</th>
-                      <th className="px-3 py-3">Vault</th>
-                      <th className="px-3 py-3">Owner</th>
-                      <th className="px-3 py-3">Risk Level</th>
-                      <th className="px-3 py-3">Last Updated</th>
-                      <th className="px-3 py-3">Last Accessed</th>
-                      <th className="px-3 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pageRows.map((secret) => (
-                      <tr
-                        key={secret.id}
-                        className="border-b border-border-subtle last:border-b-0 hover:bg-surface-elevated/40"
-                      >
-                        <td className="px-3 py-3.5">
-                          <input
-                            type="checkbox"
-                            checked={selected.has(secret.id)}
-                            onChange={() => toggleRow(secret.id)}
-                            className="rounded border-border-default"
-                            aria-label={`Select ${secret.name}`}
-                          />
-                        </td>
-                        <td className="px-3 py-3.5">
-                          <div className="flex items-center gap-2.5">
-                            <TypeIcon type={secret.type} />
-                            <div className="min-w-0">
-                              <p className="truncate text-[13px] font-semibold text-text-primary">
-                                {secret.name}
-                              </p>
-                              <p className="truncate text-[11px] text-text-muted">
-                                {secret.description || "—"}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3.5">
-                          <TypeBadge type={secret.type} />
-                        </td>
-                        <td className="px-3 py-3.5">
-                          <span className="inline-flex items-center gap-1.5 text-[13px] text-text-secondary">
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${vaultDot(secret.vault.color)}`}
-                            />
-                            {secret.vault.name}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3.5">
-                          <span title={secret.owner.name}>
-                            <Avatar initials={secret.owner.initials} size="sm" />
-                          </span>
-                        </td>
-                        <td className="px-3 py-3.5">
-                          <RiskBadge level={secret.riskLevel} />
-                        </td>
-                        <td className="px-3 py-3.5 text-[13px] text-text-secondary">
-                          {formatRelative(secret.lastUpdatedAt)}
-                        </td>
-                        <td className="px-3 py-3.5 text-[13px] text-text-secondary">
-                          {secret.lastAccessedAt
-                            ? formatRelative(secret.lastAccessedAt)
-                            : "Never"}
-                        </td>
-                        <td className="px-3 py-3.5 text-right">
-                          <RowActionsMenu
-                            items={[
-                              {
-                                id: "reveal",
-                                label: secret.hasPendingAccessRequest
-                                  ? "Request pending…"
-                                  : isAccessBlocked
-                                    ? "Reveal (blocked)"
-                                    : secret.canReveal
-                                      ? secret.temporaryAccessExpiresAt
-                                        ? "Reveal (temp access)"
-                                        : "Reveal"
-                                      : "Reveal / Request access",
-                                tone: "brand" as const,
-                                disabled:
-                                  secret.hasPendingAccessRequest ||
-                                  (isAccessBlocked && !secret.canReveal),
-                                onSelect: () => void onReveal(secret),
-                              },
-                              ...(canUpdate
-                                ? [
-                                    {
-                                      id: "edit",
-                                      label: "Edit",
-                                      onSelect: () => openEdit(secret),
-                                    },
-                                  ]
-                                : []),
-                              ...(canDelete
-                                ? [
-                                    {
-                                      id: "delete",
-                                      label: "Delete",
-                                      tone: "danger" as const,
-                                      onSelect: () => setDeleteTarget(secret),
-                                    },
-                                  ]
-                                : []),
-                            ]}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <PaginationFooter
-                from={filtered.length === 0 ? 0 : pageStart + 1}
-                to={Math.min(pageStart + PAGE_SIZE, filtered.length)}
-                total={filtered.length}
-                page={safePage}
-                totalPages={totalPages}
-                onPage={setPage}
-              />
-            </section>
-          )}
-        </div>
-
-        <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
-          <RiskDonut
-            total={summary?.totalSecrets ?? 0}
-            byRisk={byRisk}
-            loading={isBooting}
-          />
-          <TypeBreakdown byType={byType} total={summary?.totalSecrets ?? 0} />
-          <RecentActivity items={recentActivity} />
-        </aside>
+        ) : null}
       </div>
+
+      {isBooting ? (
+        <SecretsSkeleton />
+      ) : filtered.length === 0 ? (
+        <SecretsEmptyState
+          title={secrets.length === 0 ? "No secrets in this organization" : "No matching secrets"}
+          body={
+            secrets.length === 0
+              ? canCreatePermission
+                ? vaults.length === 0
+                  ? "Create a vault first, then store credentials, API keys, and other company secrets inside it."
+                  : "Add the first secret to a vault. The value is encrypted before it leaves this browser."
+                : "No secrets have been stored yet. An Owner or Admin can create them for this organization."
+              : "Try a different search, or clear filters to see the full inventory."
+          }
+          action={
+            secrets.length === 0 && canCreate ? (
+              <button
+                type="button"
+                onClick={() => openCreate()}
+                className="mt-4 inline-flex h-11 items-center gap-2 rounded-sm bg-brand-primary px-4 text-[13px] font-semibold text-brand-on-primary hover:bg-brand-primary-hover focus-visible:outline-none focus-visible:shadow-focus"
+              >
+                <IconPlus className="h-4 w-4" />
+                New secret
+              </button>
+            ) : secrets.length > 0 ? (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="mt-4 inline-flex h-11 items-center rounded-sm border border-border-default px-4 text-[13px] font-semibold text-text-primary hover:border-brand-primary hover:text-brand-primary focus-visible:outline-none focus-visible:shadow-focus"
+              >
+                Clear filters
+              </button>
+            ) : null
+          }
+        />
+      ) : (
+        <div className="overflow-hidden rounded-md border border-border-subtle bg-surface-card max-md:border-0 max-md:bg-transparent">
+          <SecretsInventory
+            rows={pageRows}
+            isAccessBlocked={isAccessBlocked}
+            canRequestAccess={canRequestAccess}
+            onReveal={(secret) => void onReveal(secret)}
+            rowActions={rowActions}
+          />
+          <div className="max-md:mt-3 max-md:overflow-hidden max-md:rounded-md max-md:border max-md:border-border-subtle max-md:bg-surface-card">
+            <SecretsPagination
+              from={filtered.length === 0 ? 0 : pageStart + 1}
+              to={Math.min(pageStart + PAGE_SIZE, filtered.length)}
+              total={filtered.length}
+              page={safePage}
+              totalPages={totalPages}
+              onPage={setPage}
+            />
+          </div>
+        </div>
+      )}
+
+      <SecretsActivity items={recentActivity} canViewAudit={canViewAudit} />
 
       {editor ? (
         <SecretEditorModal
@@ -865,6 +806,7 @@ export function SecretsPage() {
       {revealTarget ? (
         <RevealModal
           name={revealTarget.secret.name}
+          vaultName={revealTarget.secret.vault.name}
           value={revealTarget.value}
           onClose={() => setRevealTarget(null)}
         />
@@ -900,7 +842,7 @@ export function SecretsPage() {
         title="Delete secret?"
         description={
           deleteTarget
-            ? `Delete “${deleteTarget.name}”? The encrypted value will be permanently removed.`
+            ? `Delete “${deleteTarget.name}”? The encrypted value will be permanently removed. This cannot be undone.`
             : ""
         }
         confirmLabel="Delete secret"
@@ -954,6 +896,17 @@ function SecretEditorModal({
     secret?.expiresAt ? secret.expiresAt.slice(0, 10) : "",
   );
   const [formError, setFormError] = useState<string | null>(null);
+  const titleId = useId();
+  const inputClass =
+    "h-12 w-full rounded-sm border border-border-default bg-background-secondary px-3 text-[13px] text-text-primary outline-none focus:border-brand-primary focus:shadow-focus";
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !busy) onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [busy, onClose]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -988,36 +941,47 @@ function SecretEditorModal({
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-lg overflow-hidden rounded-md border border-border-subtle bg-surface-card shadow-card"
+        aria-labelledby={titleId}
+        className="w-full max-w-lg overflow-hidden rounded-lg border border-border-subtle bg-surface-elevated shadow-elevated"
       >
-        <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
-          <h2 className="text-[15px] font-semibold text-text-primary">
-            {mode === "create" ? "Create Secret" : "Edit Secret"}
-          </h2>
+        <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
+          <div>
+            <h2 id={titleId} className="text-[15px] font-semibold text-text-primary">
+              {mode === "create" ? "New secret" : "Edit secret"}
+            </h2>
+            <p className="mt-0.5 text-[12px] text-text-muted">
+              The value is encrypted before storage. It never appears in the
+              inventory list.
+            </p>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-[13px] text-text-muted hover:text-text-primary"
+            className="text-[13px] font-medium text-text-muted hover:text-text-primary focus-visible:outline-none focus-visible:shadow-focus"
           >
             Close
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="max-h-[80vh] space-y-4 overflow-y-auto p-4">
+        <form
+          onSubmit={handleSubmit}
+          className="max-h-[80vh] space-y-4 overflow-y-auto p-5"
+        >
           <label className="block">
-            <span className="mb-1.5 block text-[12px] font-medium text-text-secondary">
+            <span className="mb-1.5 block text-label text-text-secondary">
               Name
             </span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              autoFocus
               maxLength={160}
               placeholder="e.g. AWS Production Access"
-              className="h-10 w-full rounded-sm border border-border-default bg-background-secondary px-3 text-[13px] text-text-primary outline-none focus:border-brand-primary focus:shadow-focus"
+              className={inputClass}
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-[12px] font-medium text-text-secondary">
+            <span className="mb-1.5 block text-label text-text-secondary">
               Description
             </span>
             <textarea
@@ -1025,18 +989,18 @@ function SecretEditorModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               maxLength={500}
-              className="w-full resize-none rounded-sm border border-border-default bg-background-secondary px-3 py-2 text-[13px] text-text-primary outline-none focus:border-brand-primary focus:shadow-focus"
+              className="w-full resize-none rounded-sm border border-border-default bg-background-secondary px-3 py-3 text-[13px] text-text-primary outline-none focus:border-brand-primary focus:shadow-focus"
             />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-[12px] font-medium text-text-secondary">
+              <span className="mb-1.5 block text-label text-text-secondary">
                 Vault
               </span>
               <select
                 value={vaultId}
                 onChange={(e) => setVaultId(e.target.value)}
-                className="h-10 w-full rounded-sm border border-border-default bg-background-secondary px-2.5 text-[13px] text-text-primary outline-none focus:border-brand-primary"
+                className={inputClass}
               >
                 {vaults.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -1046,13 +1010,13 @@ function SecretEditorModal({
               </select>
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-[12px] font-medium text-text-secondary">
+              <span className="mb-1.5 block text-label text-text-secondary">
                 Type
               </span>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as SecretType)}
-                className="h-10 w-full rounded-sm border border-border-default bg-background-secondary px-2.5 text-[13px] text-text-primary outline-none focus:border-brand-primary"
+                className={inputClass}
               >
                 {(Object.keys(TYPE_LABELS) as SecretType[]).map((t) => (
                   <option key={t} value={t}>
@@ -1063,7 +1027,7 @@ function SecretEditorModal({
             </label>
           </div>
           <fieldset>
-            <legend className="mb-1.5 text-[12px] font-medium text-text-secondary">
+            <legend className="mb-1.5 text-label text-text-secondary">
               Risk level
             </legend>
             <div className="flex flex-wrap gap-2">
@@ -1072,13 +1036,15 @@ function SecretEditorModal({
                   key={opt.value}
                   type="button"
                   onClick={() => setRiskLevel(opt.value)}
-                  className={`inline-flex h-9 items-center rounded-sm border px-2.5 text-[12px] font-medium ${
+                  className={`inline-flex h-10 items-center rounded-sm border px-2.5 text-[12px] font-medium focus-visible:outline-none focus-visible:shadow-focus ${
                     riskLevel === opt.value
                       ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
                       : "border-border-default text-text-secondary"
                   }`}
                 >
-                  <span className={`rounded-sm px-1.5 py-0.5 text-[10px] font-semibold ${opt.className}`}>
+                  <span
+                    className={`rounded-xs px-1.5 py-0.5 text-[10px] font-semibold ${opt.className}`}
+                  >
                     {opt.label}
                   </span>
                 </button>
@@ -1086,7 +1052,7 @@ function SecretEditorModal({
             </div>
           </fieldset>
           <label className="block">
-            <span className="mb-1.5 block text-[12px] font-medium text-text-secondary">
+            <span className="mb-1.5 block text-label text-text-secondary">
               {mode === "create" ? "Secret value" : "New value (optional)"}
             </span>
             <input
@@ -1096,21 +1062,21 @@ function SecretEditorModal({
               autoComplete="new-password"
               placeholder={
                 mode === "create"
-                  ? "Stored encrypted — never in plaintext in the database"
-                  : "Leave blank to keep current value"
+                  ? "Encrypted at rest — never stored as plaintext"
+                  : "Leave blank to keep the current value"
               }
-              className="h-10 w-full rounded-sm border border-border-default bg-background-secondary px-3 font-mono text-[13px] text-text-primary outline-none focus:border-brand-primary focus:shadow-focus"
+              className={`${inputClass} font-mono`}
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-[12px] font-medium text-text-secondary">
+            <span className="mb-1.5 block text-label text-text-secondary">
               Expires on (optional)
             </span>
             <input
               type="date"
               value={expiresAt}
               onChange={(e) => setExpiresAt(e.target.value)}
-              className="h-10 w-full rounded-sm border border-border-default bg-background-secondary px-3 text-[13px] text-text-primary outline-none focus:border-brand-primary"
+              className={inputClass}
             />
           </label>
           {formError ? (
@@ -1121,16 +1087,20 @@ function SecretEditorModal({
               type="button"
               onClick={onClose}
               disabled={busy}
-              className="h-9 rounded-sm border border-border-default px-3.5 text-[13px] font-semibold text-text-primary"
+              className="h-11 rounded-sm border border-border-default px-4 text-[13px] font-semibold text-text-primary focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-60"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={busy}
-              className="h-9 rounded-sm bg-brand-primary px-3.5 text-[13px] font-semibold text-brand-on-primary disabled:opacity-60"
+              className="h-11 rounded-sm bg-brand-primary px-4 text-[13px] font-semibold text-brand-on-primary hover:bg-brand-primary-hover focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-60"
             >
-              {busy ? "Saving…" : mode === "create" ? "Create secret" : "Save changes"}
+              {busy
+                ? "Saving…"
+                : mode === "create"
+                  ? "Create secret"
+                  : "Save changes"}
             </button>
           </div>
         </form>
@@ -1141,420 +1111,98 @@ function SecretEditorModal({
 
 function RevealModal({
   name,
+  vaultName,
   value,
   onClose,
 }: {
   name: string;
+  vaultName: string;
   value: string;
   onClose: () => void;
 }) {
+  const [secondsLeft, setSecondsLeft] = useState(60);
+  const [hidden, setHidden] = useState(false);
+  const titleId = useId();
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          window.clearInterval(interval);
+          onCloseRef.current();
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onCloseRef.current();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-md rounded-md border border-border-subtle bg-surface-card p-5 shadow-card"
+        aria-labelledby={titleId}
+        className="w-full max-w-md rounded-lg border border-warning/30 bg-surface-elevated p-5 shadow-elevated"
       >
-        <h2 className="text-[15px] font-semibold text-text-primary">
-          Revealed: {name}
+        <p className="text-[11px] font-semibold tracking-wide text-warning uppercase">
+          Sensitive value · closes in {secondsLeft}s
+        </p>
+        <h2 id={titleId} className="mt-1 text-[15px] font-semibold text-text-primary">
+          {name}
         </h2>
-        <p className="mt-1 text-[12px] text-warning">
-          Treat this value as sensitive. It will not stay on screen.
+        <p className="text-[12px] text-text-muted">{vaultName}</p>
+        <p className="mt-3 text-[12px] text-text-secondary">
+          This is a temporary view. It is not written to logs, the URL, or local
+          storage. Clear your clipboard after copying.
         </p>
         <pre className="mt-3 max-h-40 overflow-auto rounded-sm border border-border-subtle bg-background-secondary p-3 font-mono text-[12px] break-all whitespace-pre-wrap text-text-primary">
-          {value}
+          {hidden ? "••••••••••••••••" : value}
         </pre>
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setHidden((h) => !h)}
+            className="h-11 rounded-sm border border-border-default px-3.5 text-[13px] font-semibold text-text-primary focus-visible:outline-none focus-visible:shadow-focus"
+          >
+            {hidden ? "Show" : "Hide"}
+          </button>
           <button
             type="button"
             onClick={async () => {
               try {
                 await navigator.clipboard.writeText(value);
-                toast.success("Copied", "Value copied to clipboard.");
+                toast.success(
+                  "Copied",
+                  "Clear the clipboard when you are finished.",
+                );
               } catch {
                 toast.error("Could not copy", "Clipboard was blocked.");
               }
             }}
-            className="h-9 rounded-sm border border-border-default px-3.5 text-[13px] font-semibold text-text-primary"
+            className="h-11 rounded-sm border border-border-default px-3.5 text-[13px] font-semibold text-text-primary focus-visible:outline-none focus-visible:shadow-focus"
           >
             Copy
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="h-9 rounded-sm bg-brand-primary px-3.5 text-[13px] font-semibold text-brand-on-primary"
+            className="h-11 rounded-sm bg-brand-primary px-3.5 text-[13px] font-semibold text-brand-on-primary hover:bg-brand-primary-hover focus-visible:outline-none focus-visible:shadow-focus"
           >
-            Close
+            Hide now
           </button>
         </div>
       </div>
     </div>
   );
-}
-
-function TypeIcon({ type }: { type: SecretType }) {
-  const map: Record<SecretType, { bg: string; icon: ReactNode }> = {
-    credential: {
-      bg: "bg-brand-primary/15 text-brand-primary",
-      icon: <IconSecurity className="h-3.5 w-3.5" />,
-    },
-    api_key: {
-      bg: "bg-info/15 text-info",
-      icon: <IconKey className="h-3.5 w-3.5" />,
-    },
-    database: {
-      bg: "bg-purple/15 text-purple",
-      icon: <IconVault className="h-3.5 w-3.5" />,
-    },
-    token: {
-      bg: "bg-surface-elevated text-text-secondary",
-      icon: <IconLock className="h-3.5 w-3.5" />,
-    },
-    key_pair: {
-      bg: "bg-surface-elevated text-text-secondary",
-      icon: <IconKey className="h-3.5 w-3.5" />,
-    },
-    other: {
-      bg: "bg-surface-elevated text-text-muted",
-      icon: <IconLock className="h-3.5 w-3.5" />,
-    },
-  };
-  const tone = map[type];
-  return (
-    <span
-      className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-sm ${tone.bg}`}
-    >
-      {tone.icon}
-    </span>
-  );
-}
-
-function TypeBadge({ type }: { type: SecretType }) {
-  const map: Record<SecretType, string> = {
-    credential: "bg-brand-primary/15 text-brand-primary",
-    api_key: "bg-info/15 text-info",
-    database: "bg-purple/15 text-purple",
-    token: "bg-surface-elevated text-text-secondary",
-    key_pair: "bg-surface-elevated text-text-secondary",
-    other: "bg-surface-elevated text-text-muted",
-  };
-  return (
-    <span
-      className={`inline-flex items-center rounded-sm px-2 py-0.5 text-[11px] font-semibold ${map[type]}`}
-    >
-      {TYPE_LABELS[type]}
-    </span>
-  );
-}
-
-function RiskBadge({ level }: { level: SecretRiskLevel }) {
-  const map: Record<SecretRiskLevel, string> = {
-    high: "bg-danger/15 text-danger",
-    medium: "bg-warning/15 text-warning",
-    low: "bg-brand-primary/15 text-brand-primary",
-    unknown: "bg-surface-elevated text-text-muted",
-  };
-  return (
-    <span
-      className={`inline-flex items-center rounded-sm px-2 py-0.5 text-[11px] font-semibold capitalize ${map[level]}`}
-    >
-      {level}
-    </span>
-  );
-}
-
-function vaultDot(color: string) {
-  const map: Record<string, string> = {
-    brand: "bg-brand-primary",
-    purple: "bg-purple",
-    info: "bg-info",
-    warning: "bg-warning",
-    danger: "bg-danger",
-  };
-  return map[color] ?? "bg-brand-primary";
-}
-
-function RiskDonut({
-  total,
-  byRisk,
-  loading,
-}: {
-  total: number;
-  byRisk?: Record<SecretRiskLevel, number>;
-  loading: boolean;
-}) {
-  const high = byRisk?.high ?? 0;
-  const medium = byRisk?.medium ?? 0;
-  const low = byRisk?.low ?? 0;
-  const unknown = byRisk?.unknown ?? 0;
-  const safeTotal = Math.max(total, 1);
-  const pHigh = (high / safeTotal) * 100;
-  const pMed = (medium / safeTotal) * 100;
-  const pLow = (low / safeTotal) * 100;
-
-  return (
-    <div className="rounded-md border border-border-subtle bg-surface-card p-4 shadow-card">
-      <h3 className="text-[13px] font-semibold text-text-primary">
-        Secrets by Risk Level
-      </h3>
-      <div className="mt-4 flex flex-col items-center">
-        <div
-          className="relative h-36 w-36 rounded-full"
-          style={{
-            background: loading
-              ? "var(--color-surface-elevated)"
-              : `conic-gradient(
-                  var(--color-danger) 0 ${pHigh}%,
-                  var(--color-warning) ${pHigh}% ${pHigh + pMed}%,
-                  var(--color-brand-primary) ${pHigh + pMed}% ${pHigh + pMed + pLow}%,
-                  var(--color-text-muted) ${pHigh + pMed + pLow}% 100%
-                )`,
-          }}
-        >
-          <div className="absolute inset-4 flex flex-col items-center justify-center rounded-full bg-surface-card">
-            <span className="text-[1.25rem] font-bold text-text-primary">
-              {loading ? "—" : total}
-            </span>
-            <span className="text-[11px] text-text-muted">Total</span>
-          </div>
-        </div>
-        <ul className="mt-4 w-full space-y-1.5 text-[12px]">
-          <LegendRow color="bg-danger" label="High" value={high} />
-          <LegendRow color="bg-warning" label="Medium" value={medium} />
-          <LegendRow color="bg-brand-primary" label="Low" value={low} />
-          <LegendRow color="bg-text-muted" label="Unknown" value={unknown} />
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-function LegendRow({
-  color,
-  label,
-  value,
-}: {
-  color: string;
-  label: string;
-  value: number;
-}) {
-  return (
-    <li className="flex items-center justify-between text-text-secondary">
-      <span className="inline-flex items-center gap-2">
-        <span className={`h-2 w-2 rounded-full ${color}`} />
-        {label}
-      </span>
-      <span className="font-semibold text-text-primary">{value}</span>
-    </li>
-  );
-}
-
-function TypeBreakdown({
-  byType,
-  total,
-}: {
-  byType?: Record<SecretType, number>;
-  total: number;
-}) {
-  const rows = (Object.keys(TYPE_LABELS) as SecretType[]).map((type) => {
-    const count = byType?.[type] ?? 0;
-    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-    return { type, count, pct };
-  });
-
-  return (
-    <div className="rounded-md border border-border-subtle bg-surface-card p-4 shadow-card">
-      <h3 className="text-[13px] font-semibold text-text-primary">
-        Secrets by Type
-      </h3>
-      <ul className="mt-3 space-y-2.5">
-        {rows.map((row) => (
-          <li key={row.type} className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-2 text-[12px] text-text-secondary">
-              <TypeIcon type={row.type} />
-              {TYPE_LABELS[row.type]}
-            </span>
-            <span className="text-[12px] text-text-muted">
-              <span className="font-semibold text-text-primary">{row.count}</span>{" "}
-              ({row.pct}%)
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function RecentActivity({
-  items,
-}: {
-  items: {
-    id: string;
-    secretName: string;
-    action: string;
-    actorName: string;
-    at: string;
-  }[];
-}) {
-  return (
-    <div className="rounded-md border border-border-subtle bg-surface-card p-4 shadow-card">
-      <h3 className="text-[13px] font-semibold text-text-primary">
-        Recent Activity
-      </h3>
-      {items.length === 0 ? (
-        <p className="mt-3 text-[12px] text-text-muted">No activity yet.</p>
-      ) : (
-        <ul className="mt-3 space-y-3">
-          {items.slice(0, 5).map((item) => (
-            <li key={item.id} className="flex gap-2.5">
-              <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-surface-elevated text-text-secondary">
-                <IconLock className="h-3.5 w-3.5" />
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-[12px] font-semibold text-text-primary">
-                  {item.secretName}
-                </p>
-                <p className="text-[11px] text-text-muted">
-                  {item.action === "accessed" ? "Accessed" : "Updated"} by{" "}
-                  {item.actorName} · {formatRelative(item.at)}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className="mt-3 text-[12px] font-semibold text-brand-primary">
-        View all activity
-      </p>
-    </div>
-  );
-}
-
-function PaginationFooter({
-  from,
-  to,
-  total,
-  page,
-  totalPages,
-  onPage,
-}: {
-  from: number;
-  to: number;
-  total: number;
-  page: number;
-  totalPages: number;
-  onPage: (p: number) => void;
-}) {
-  const pages = Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1);
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle px-4 py-3">
-      <p className="text-[12px] text-text-muted">
-        Showing {from} to {to} of {total} secrets
-      </p>
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          disabled={page <= 1}
-          onClick={() => onPage(page - 1)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-border-default text-text-secondary disabled:opacity-40"
-        >
-          ‹
-        </button>
-        {pages.map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => onPage(p)}
-            className={`inline-flex h-8 min-w-8 items-center justify-center rounded-sm border px-2 text-[12px] font-semibold ${
-              p === page
-                ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
-                : "border-border-default text-text-secondary"
-            }`}
-          >
-            {p}
-          </button>
-        ))}
-        <button
-          type="button"
-          disabled={page >= totalPages}
-          onClick={() => onPage(page + 1)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-border-default text-text-secondary disabled:opacity-40"
-        >
-          ›
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  hint,
-  icon,
-  iconBg,
-}: {
-  label: string;
-  value: string;
-  hint: ReactNode;
-  icon: ReactNode;
-  iconBg: string;
-}) {
-  return (
-    <div className="rounded-md border border-border-subtle bg-surface-card p-4 shadow-card">
-      <div className="flex items-start gap-3">
-        <span
-          className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-sm ${iconBg}`}
-        >
-          {icon}
-        </span>
-        <div className="min-w-0">
-          <p className="text-[12px] font-medium text-text-muted">{label}</p>
-          <p className="mt-0.5 text-[1.5rem] font-bold tracking-tight text-text-primary">
-            {value}
-          </p>
-          <div className="mt-0.5 text-[11px] text-text-secondary">{hint}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState({
-  title,
-  body,
-  action,
-}: {
-  title: string;
-  body: string;
-  action?: ReactNode;
-}) {
-  return (
-    <div className="rounded-md border border-border-subtle bg-surface-card px-6 py-16 text-center shadow-card">
-      <span className="inline-flex h-12 w-12 items-center justify-center rounded-sm bg-brand-primary/10 text-brand-primary">
-        <IconLock className="h-6 w-6" />
-      </span>
-      <h2 className="mt-4 text-[1.125rem] font-semibold text-text-primary">
-        {title}
-      </h2>
-      <p className="mx-auto mt-2 max-w-md text-[13px] text-text-secondary">
-        {body}
-      </p>
-      {action}
-    </div>
-  );
-}
-
-function formatRelative(iso: string): string {
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return "—";
-  const seconds = Math.round((Date.now() - then) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  const days = Math.round(hours / 24);
-  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
-  return new Date(iso).toLocaleDateString();
 }

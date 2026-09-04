@@ -15,6 +15,9 @@ export type AppNavIcon =
   | "audit"
   | "alert"
   | "integrations"
+  | "organization"
+  | "billing"
+  | "accountSecurity"
   | "settings";
 
 export type AppNavItemDef = {
@@ -144,19 +147,19 @@ export const APP_NAV: AppNavGroupDef[] = [
       {
         href: "/app/organization",
         label: "Organization",
-        icon: "settings",
+        icon: "organization",
         anyOf: ["org.read"],
       },
       {
         href: "/app/billing",
         label: "Billing",
-        icon: "settings",
+        icon: "billing",
         ownerOrAdminOnly: true,
       },
       {
         href: "/app/account-security",
         label: "Account security",
-        icon: "security",
+        icon: "accountSecurity",
       },
     ],
   },

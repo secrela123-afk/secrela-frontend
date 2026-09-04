@@ -23,6 +23,11 @@ import {
   registerPath,
   authPathWithNext,
 } from "../../lib/routes";
+import {
+  PAID_PLAN_PRICES,
+  isPaidPlanSlug,
+  type PaidPlanSlug,
+} from "../../lib/plan-catalog";
 
 type Billing = "monthly" | "yearly";
 type Accent = "green" | "purple";
@@ -39,7 +44,6 @@ type Plan = {
   guestHref: string;
   featured?: boolean;
   isFree?: boolean;
-  isEnterprise?: boolean;
   accent: Accent;
   Icon: (props: { className?: string }) => ReactNode;
 };
@@ -48,9 +52,9 @@ const PLANS: Plan[] = [
   {
     id: "free",
     name: "Free trial",
-    tagline: "For individuals getting started",
+    tagline: "Try Secrela for 14 days",
     description:
-      "All the basics to secure your secrets from day one — 14 days free, no card required.",
+      "One person, a small vault set, and basic access control — no card required.",
     monthlyPrice: "$0",
     yearlyPrice: "$0",
     isFree: true,
@@ -59,11 +63,12 @@ const PLANS: Plan[] = [
       <Rocket className={className} strokeWidth={1.75} aria-hidden="true" />
     ),
     features: [
-      "1 User",
-      "3 Vaults",
-      "100 Secrets",
-      "Basic Access Controls",
-      "Community Support",
+      "1 member",
+      "3 vaults",
+      "100 secrets",
+      "Basic access controls",
+      "14-day trial, no card",
+      "Community support",
     ],
     guestCta: "Start 14-day free trial",
     guestHref: registerPath("free"),
@@ -73,21 +78,20 @@ const PLANS: Plan[] = [
     name: "Starter",
     tagline: "For small teams",
     description:
-      "Secure company secrets for small teams — up to 5 members, unlimited vaults, RBAC, and 7-day audit logs.",
-    monthlyPrice: "$28",
-    yearlyPrice: "$22",
+      "A paid workspace for a handful of people: unlimited vaults and secrets, custom roles, and a week of audit history.",
+    monthlyPrice: `$${PAID_PLAN_PRICES.starter.monthly}`,
+    yearlyPrice: `$${PAID_PLAN_PRICES.starter.yearlyPerMonth}`,
     accent: "green",
     Icon: ({ className }) => (
       <Lock className={className} strokeWidth={1.75} aria-hidden="true" />
     ),
     features: [
-      "Up to 5 Users",
-      "Unlimited Vaults",
-      "Unlimited Secrets",
-      "Advanced Access Controls",
-      "Custom Roles",
-      "Audit Logs (7 days)",
-      "Email Support",
+      "Up to 5 members",
+      "Unlimited vaults",
+      "Unlimited secrets",
+      "Custom roles & RBAC",
+      "Audit logs (7 days)",
+      "Email support",
     ],
     guestCta: "Subscribe to Starter",
     guestHref: checkoutPath("starter"),
@@ -97,60 +101,55 @@ const PLANS: Plan[] = [
     name: "Team",
     tagline: "For growing teams",
     description:
-      "Advanced security for growing teams — Security Center, integrations, full audit history, and priority support.",
-    monthlyPrice: "$36",
-    yearlyPrice: "$29",
+      "Security Center, integrations, and full audit history for teams that need visibility — not just storage.",
+    monthlyPrice: `$${PAID_PLAN_PRICES.team.monthly}`,
+    yearlyPrice: `$${PAID_PLAN_PRICES.team.yearlyPerMonth}`,
     featured: true,
     accent: "green",
     Icon: ({ className }) => (
       <Gem className={className} strokeWidth={1.75} aria-hidden="true" />
     ),
     features: [
-      "Up to 10 Users",
-      "Unlimited Vaults",
-      "Unlimited Secrets",
-      "Advanced Access Controls",
-      "Custom Roles",
-      "Full Audit History",
+      "Up to 10 members",
+      "Unlimited vaults & secrets",
+      "Custom roles & RBAC",
+      "Full audit history",
       "Security Center",
       "Integrations",
-      "Priority Support",
+      "Priority email support",
     ],
     guestCta: "Subscribe to Team",
     guestHref: checkoutPath("team"),
   },
   {
-    id: "enterprise",
-    name: "Enterprise",
-    tagline: "For organizations with advanced needs",
+    id: "business",
+    name: "Business",
+    tagline: "For larger companies",
     description:
-      "Tailored solutions with enterprise-grade security, compliance, and support.",
-    monthlyPrice: null,
-    yearlyPrice: null,
-    isEnterprise: true,
-    accent: "purple",
+      "Same security tooling as Team, with more seats and priority onboarding when the company is scaling access.",
+    monthlyPrice: `$${PAID_PLAN_PRICES.business.monthly}`,
+    yearlyPrice: `$${PAID_PLAN_PRICES.business.yearlyPerMonth}`,
+    accent: "green",
     Icon: ({ className }) => (
       <Building2 className={className} strokeWidth={1.75} aria-hidden="true" />
     ),
     features: [
-      "Unlimited Users",
-      "Unlimited Vaults & Secrets",
-      "Advanced Security Controls",
-      "Custom Integrations",
-      "Dedicated Support",
-      "SLA & Compliance",
-      "Onboarding & Training",
+      "Up to 25 members",
+      "Unlimited vaults & secrets",
+      "Custom roles & RBAC",
+      "Full audit history",
+      "Security Center",
+      "Integrations",
+      "Priority onboarding support",
     ],
-    guestCta: "Contact sales",
-    guestHref: "mailto:sales@secrela.com",
+    guestCta: "Subscribe to Business",
+    guestHref: checkoutPath("business"),
   },
 ];
 
-function planSlugForCheckout(plan: Plan): "starter" | "team" | null {
-  if (plan.isFree || plan.isEnterprise) return null;
-  if (plan.id === "team") return "team";
-  if (plan.id === "starter") return "starter";
-  return null;
+function planSlugForCheckout(plan: Plan): PaidPlanSlug | null {
+  if (plan.isFree) return null;
+  return isPaidPlanSlug(plan.id) ? plan.id : null;
 }
 
 type PlanAction = {
@@ -164,10 +163,6 @@ function planAction(
   session: LandingSession,
   billing: Billing,
 ): PlanAction {
-  if (plan.isEnterprise) {
-    return { href: plan.guestHref, cta: plan.guestCta, disabled: false };
-  }
-
   if (session.status === "loading") {
     return { href: plan.guestHref, cta: plan.guestCta, disabled: false };
   }
@@ -231,8 +226,7 @@ function planAction(
 }
 
 /**
- * Pricing — matches reference: centered title, billing switch,
- * 4 cards with elevated glowing Team card.
+ * Pricing — four cards: trial + three paid plans. Team stays featured.
  */
 export function LandingPricing() {
   const [billing, setBilling] = useState<Billing>("yearly");
@@ -257,8 +251,8 @@ export function LandingPricing() {
           <span className="text-brand-primary">Maximum security.</span>
         </h2>
         <p className="mx-auto mt-4 max-w-md text-[0.9375rem] leading-relaxed text-text-secondary">
-          Start free, scale as you grow, and unlock enterprise-grade security
-          built for modern teams.
+          Start with a free trial, then pick Starter, Team, or Business as
+          your company grows.
         </p>
       </div>
 
@@ -330,13 +324,9 @@ export function LandingPricing() {
               ? { href: plan.guestHref, cta: plan.guestCta, disabled: false }
               : planAction(plan, session, billing);
 
-          const isCustom = plan.monthlyPrice === null;
-          const showDeal = billing === "yearly" && !isCustom && !plan.isFree;
-          const priceLabel = isCustom
-            ? "Custom"
-            : billing === "yearly"
-              ? plan.yearlyPrice
-              : plan.monthlyPrice;
+          const showDeal = billing === "yearly" && !plan.isFree;
+          const priceLabel =
+            billing === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
 
           const green = plan.accent === "green";
           const checkClass = green ? "text-brand-primary" : "text-purple";
@@ -353,13 +343,12 @@ export function LandingPricing() {
               }
               className={
                 plan.featured
-                  ? "relative flex flex-col overflow-hidden rounded-2xl border border-brand-primary bg-surface-card p-5 shadow-[0_0_0_1px_rgb(25_224_111_/_0.35),0_0_45px_rgb(25_224_111_/_0.28)] sm:p-6 xl:-my-5 xl:py-9"
+                  ? "relative flex flex-col overflow-hidden rounded-2xl border border-brand-primary bg-surface-card p-5 pt-14 shadow-[0_0_0_1px_rgb(25_224_111_/_0.35),0_0_45px_rgb(25_224_111_/_0.28)] sm:p-6 sm:pt-6 xl:-my-5 xl:py-9"
                   : "relative flex flex-col rounded-2xl border border-border-subtle bg-surface-card p-5 shadow-card sm:p-6"
               }
             >
               {plan.featured ? (
                 <>
-                  {/* Hex pattern behind header */}
                   <svg
                     className="pointer-events-none absolute top-0 right-0 h-36 w-44 opacity-[0.16]"
                     viewBox="0 0 176 144"
@@ -394,7 +383,6 @@ export function LandingPricing() {
               ) : null}
 
               <div className="relative z-[1] flex flex-1 flex-col">
-                {/* Header: icon + name + tagline */}
                 <div className="flex items-center gap-3">
                   <span
                     className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg border ${iconWrap}`}
@@ -417,7 +405,6 @@ export function LandingPricing() {
                   </div>
                 </div>
 
-                {/* Price */}
                 <div className="mt-6 flex items-baseline gap-1.5">
                   <span
                     className={
@@ -428,9 +415,7 @@ export function LandingPricing() {
                   >
                     {priceLabel}
                   </span>
-                  {!isCustom ? (
-                    <span className="text-sm text-text-muted">/month</span>
-                  ) : null}
+                  <span className="text-sm text-text-muted">/month</span>
                 </div>
 
                 {showDeal ? (
@@ -444,12 +429,10 @@ export function LandingPricing() {
                   </p>
                 ) : null}
 
-                {/* Description */}
                 <p className="mt-3 text-[13px] leading-relaxed text-text-secondary">
                   {plan.description}
                 </p>
 
-                {/* Divider */}
                 {plan.featured ? (
                   <div className="relative mt-4 h-px w-full bg-gradient-to-r from-transparent via-brand-primary/60 to-transparent">
                     <span className="absolute top-1/2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-primary shadow-[0_0_8px_rgb(25_224_111_/_0.9)]" />
@@ -458,7 +441,6 @@ export function LandingPricing() {
                   <div className="mt-4 h-px w-full bg-border-subtle" />
                 )}
 
-                {/* Features */}
                 <ul className="mt-4 flex flex-1 list-none flex-col gap-2.5 p-0">
                   {plan.features.map((feature) => (
                     <li
@@ -475,16 +457,13 @@ export function LandingPricing() {
                   ))}
                 </ul>
 
-                {/* CTA */}
                 {action.disabled ? (
                   <span
                     aria-disabled="true"
                     className={
                       plan.featured
                         ? "mt-6 inline-flex h-11 cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-border-default bg-surface-elevated px-4 text-sm font-semibold text-text-muted opacity-70"
-                        : green
-                          ? "mt-6 inline-flex h-10 cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-border-default bg-surface-elevated px-4 text-[13px] font-semibold text-text-muted opacity-70"
-                          : "mt-6 inline-flex h-10 cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-border-default bg-surface-elevated px-4 text-[13px] font-semibold text-text-muted opacity-70"
+                        : "mt-6 inline-flex h-10 cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-border-default bg-surface-elevated px-4 text-[13px] font-semibold text-text-muted opacity-70"
                     }
                   >
                     {action.cta}

@@ -16,6 +16,9 @@ export const CHECKOUT_PATH = "/checkout";
 /** In-app billing — PayPal subscription and auto-renew. */
 export const BILLING_PATH = "/app/billing";
 
+/** Signed-in user: MFA, recovery codes, sessions. */
+export const ACCOUNT_SECURITY_PATH = "/app/account-security";
+
 /** Accept an organization invite from email link. */
 export function inviteAcceptPath(token: string) {
   return `/invite/accept?token=${encodeURIComponent(token)}`;

@@ -20,7 +20,7 @@ export const TERMS_SECTIONS: LegalSection[] = [
   {
     heading: "2. The Service",
     paragraphs: [
-      "Secrela lets organizations store, control, and audit access to company secrets such as passwords, API keys, and infrastructure credentials. Features, limits, and support levels depend on the plan you purchase (including the free trial, Starter, Team, or Enterprise).",
+      "Secrela lets organizations store, control, and audit access to company secrets such as passwords, API keys, and infrastructure credentials. Features, limits, and support levels depend on the plan you purchase (including the free trial, Starter, Team, or Business).",
       "We may improve, add, or remove features. We will not materially reduce paid plan capabilities during an already-paid period without notice, except where required for security or legal reasons.",
     ],
   },

@@ -62,19 +62,30 @@ export function LandingHeader() {
     return () => mq.removeEventListener("change", onChange);
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [menuOpen]);
+
   const solid = scrolled || menuOpen;
+
+  const desktopCtaClass = `${btnPrimary} hidden md:inline-flex`;
 
   const authArea =
     session.status === "loading" ? (
       <span className="hidden h-[42px] w-[120px] rounded-sm bg-surface-card/60 md:inline-flex" />
     ) : session.status === "authed" ? (
       session.hasOrganization ? (
-        <Link href={APP_HOME} className={btnPrimary}>
+        <Link href={APP_HOME} className={desktopCtaClass}>
           Open dashboard
           <CtaArrow />
         </Link>
       ) : (
-        <Link href={LANDING_PRICING} className={btnPrimary}>
+        <Link href={LANDING_PRICING} className={desktopCtaClass}>
           Choose a plan
           <CtaArrow />
         </Link>
@@ -87,7 +98,7 @@ export function LandingHeader() {
         >
           Sign in
         </Link>
-        <Link href={registerPath("free")} className={btnPrimary}>
+        <Link href={registerPath("free")} className={desktopCtaClass}>
           Get started
           <CtaArrow />
         </Link>
@@ -103,14 +114,14 @@ export function LandingHeader() {
           : "border-b border-transparent bg-transparent",
       ].join(" ")}
     >
-      <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center justify-between gap-4 px-3 sm:h-[72px] sm:px-4 lg:px-5">
+      <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center justify-between gap-2 px-4 sm:h-[72px] sm:gap-4 sm:px-4 lg:px-5">
         <Link
           href="/"
-          className="flex items-center gap-2.5 text-inherit no-underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:shadow-focus"
+          className="flex min-w-0 items-center gap-2 text-inherit no-underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:shadow-focus sm:gap-2.5"
           aria-label={APP_NAME}
         >
-          <SecureVaultLogo state="enter" size={34} decorative />
-          <span className="text-[15px] font-semibold tracking-tight text-text-primary">
+          <SecureVaultLogo state="enter" size={30} decorative />
+          <span className="truncate text-[15px] font-semibold tracking-tight text-text-primary">
             {APP_NAME}
           </span>
         </Link>
@@ -132,7 +143,7 @@ export function LandingHeader() {
             aria-expanded={menuOpen}
             aria-controls="landing-mobile-menu"
             onClick={() => setMenuOpen((o) => !o)}
-            className="grid h-[42px] w-[42px] place-items-center rounded-sm border border-border-default text-text-primary transition-colors duration-fast ease-sv hover:border-brand-primary hover:text-brand-primary focus-visible:outline-none focus-visible:shadow-focus md:hidden"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border border-border-default text-text-primary transition-colors duration-fast ease-sv hover:border-brand-primary hover:text-brand-primary focus-visible:outline-none focus-visible:shadow-focus md:hidden"
           >
             {menuOpen ? (
               <X className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
@@ -150,7 +161,7 @@ export function LandingHeader() {
           aria-label="Primary mobile"
           className="border-t border-border-subtle/60 bg-background-primary/95 backdrop-blur-md md:hidden"
         >
-          <ul className="m-0 flex list-none flex-col gap-1 px-3 py-3 sm:px-4">
+          <ul className="m-0 flex list-none flex-col gap-1 px-4 py-3">
             {NAV.map((item) => (
               <li key={item.href}>
                 <a
@@ -162,17 +173,36 @@ export function LandingHeader() {
                 </a>
               </li>
             ))}
-            {session.status !== "authed" ? (
-              <li className="mt-1 border-t border-border-subtle/60 pt-2">
+            <li className="mt-2 flex flex-col gap-2 border-t border-border-subtle/60 pt-3">
+              {session.status === "authed" ? (
                 <Link
-                  href="/login"
+                  href={session.hasOrganization ? APP_HOME : LANDING_PRICING}
                   onClick={() => setMenuOpen(false)}
-                  className="block rounded-sm px-3 py-2.5 text-[15px] font-semibold text-brand-primary no-underline transition-colors duration-fast ease-sv hover:bg-surface-card focus-visible:outline-none focus-visible:shadow-focus"
+                  className={`${btnPrimary} w-full`}
                 >
-                  Sign in
+                  {session.hasOrganization ? "Open dashboard" : "Choose a plan"}
+                  <CtaArrow />
                 </Link>
-              </li>
-            ) : null}
+              ) : (
+                <>
+                  <Link
+                    href={registerPath("free")}
+                    onClick={() => setMenuOpen(false)}
+                    className={`${btnPrimary} w-full`}
+                  >
+                    Get started
+                    <CtaArrow />
+                  </Link>
+                  <Link
+                    href="/login"
+                    onClick={() => setMenuOpen(false)}
+                    className="inline-flex h-[42px] items-center justify-center rounded-sm border border-border-default px-4 text-sm font-semibold text-text-primary no-underline transition-colors duration-fast ease-sv hover:border-brand-primary hover:text-brand-primary focus-visible:outline-none focus-visible:shadow-focus"
+                  >
+                    Sign in
+                  </Link>
+                </>
+              )}
+            </li>
           </ul>
         </nav>
       ) : null}

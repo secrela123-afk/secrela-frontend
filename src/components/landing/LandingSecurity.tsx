@@ -316,7 +316,7 @@ function SecurityHubDiagram({ active }: { active: boolean }) {
   const orbitOrigin = { transformOrigin: `${hub.cx}px ${hub.cy}px` };
 
   return (
-    <div className="sec-hub relative mx-auto w-full max-w-[720px]">
+    <div className="sec-hub relative mx-auto w-full max-w-[720px] overflow-x-clip">
       {/* Ambient glow behind the whole diagram */}
       <div
         className="pointer-events-none absolute top-1/2 left-1/2 h-[75%] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgb(25_224_111_/_0.07),transparent_65%)]"

@@ -176,7 +176,7 @@ export function LandingProblems() {
         </div>
       </div>
 
-      <div className="mt-10 space-y-8 md:hidden">
+      <div className="mt-10 space-y-8 overflow-x-clip md:hidden">
         <div>
           <ul className="m-0 grid list-none grid-cols-2 gap-2.5 p-0">
             {LEFT.map(({ label, Icon }) => (

@@ -99,7 +99,7 @@ export function PlanFeatureGate({
             ? `Your ${snapshot.planLabel} workspace does not include ${featureLabel.toLowerCase()}. ${
                 upgradeLabel
                   ? `Upgrade to ${upgradeLabel} to unlock it.`
-                  : "Contact sales for Enterprise access."
+                  : "View plans to upgrade."
               }`
             : `Upgrade your plan to unlock ${featureLabel.toLowerCase()}.`
         }

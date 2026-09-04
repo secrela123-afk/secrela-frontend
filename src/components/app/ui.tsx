@@ -25,6 +25,60 @@ export function PageHeader({
   );
 }
 
+/** Settings screens — title + stacked cards, matching Account security. */
+export function SettingsPage({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="p-4 lg:p-6">
+      <PageHeader title={title} description={description} />
+      <div className="grid max-w-3xl gap-4">{children}</div>
+    </div>
+  );
+}
+
+export const settingsPrimaryBtn =
+  "inline-flex h-10 shrink-0 items-center justify-center rounded-sm bg-brand-primary px-4 text-sm font-semibold text-brand-on-primary shadow-glow-green transition-colors hover:bg-brand-primary-hover focus-visible:outline-none focus-visible:shadow-focus";
+
+export const settingsSecondaryBtn =
+  "inline-flex h-10 shrink-0 items-center justify-center rounded-sm border border-border-default px-4 text-sm font-semibold text-text-primary no-underline transition-colors hover:border-brand-primary hover:text-brand-primary focus-visible:outline-none focus-visible:shadow-focus";
+
+export function SettingsCard({
+  title,
+  description,
+  status,
+  action,
+  children,
+}: {
+  title: string;
+  description?: string;
+  status?: ReactNode;
+  action?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <section className="rounded-lg border border-border-subtle bg-surface-card p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-[16px] font-semibold text-text-primary">{title}</h2>
+          {description ? (
+            <p className="mt-1 max-w-xl text-small text-text-secondary">{description}</p>
+          ) : null}
+          {status ? <div className="mt-3 text-small text-text-primary">{status}</div> : null}
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export function Panel({
   title,
   action,

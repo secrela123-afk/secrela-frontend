@@ -11,6 +11,7 @@ import { PaddleCheckoutForm } from "../../components/billing/PaddleCheckoutForm"
 import { PaypalCardForm } from "../../components/billing/PaypalCardForm";
 import { BoltIcon, LockIcon, ShieldOutlineIcon } from "../../components/auth/icons";
 import { BILLING_PATH, LANDING_PRICING } from "../../lib/routes";
+import { isPaidPlanSlug } from "../../lib/plan-catalog";
 
 type Interval = "monthly" | "yearly";
 
@@ -40,11 +41,8 @@ const BENEFITS: AuthSplitBenefit[] = [
 export function CheckoutScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const plan = (searchParams.get("plan") ?? "starter") as
-    | "starter"
-    | "team"
-    | "enterprise"
-    | "free";
+  const rawPlan = searchParams.get("plan") ?? "starter";
+  const plan = isPaidPlanSlug(rawPlan) ? rawPlan : null;
   const intervalParam = searchParams.get("interval");
   const [interval, setInterval] = useState<Interval>(() =>
     intervalParam === "yearly" || intervalParam === "monthly"
@@ -57,32 +55,17 @@ export function CheckoutScreen() {
     router.replace("/app/billing");
   }, [router]);
 
-  if (plan === "free") {
+  if (!plan) {
     return (
       <AuthSplitLayout
         title="Pick a paid plan"
-        description="The free trial does not use card checkout."
+        description="Choose Starter, Team, or Business to continue to checkout."
         benefits={BENEFITS}
         footerNote=""
       >
         <Link href={LANDING_PRICING} className="text-brand-primary">
           Back to pricing
         </Link>
-      </AuthSplitLayout>
-    );
-  }
-
-  if (plan === "enterprise") {
-    return (
-      <AuthSplitLayout
-        title="Enterprise"
-        description="Contact sales for a custom contract."
-        benefits={BENEFITS}
-        footerNote=""
-      >
-        <a href="mailto:sales@secrela.com" className="text-brand-primary">
-          sales@secrela.com
-        </a>
       </AuthSplitLayout>
     );
   }

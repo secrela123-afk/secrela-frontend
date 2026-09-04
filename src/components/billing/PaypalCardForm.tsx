@@ -10,14 +10,12 @@ import {
   getPaypalCardConfigRequest,
 } from "../../lib/api";
 import { toast } from "../../stores/toast-store";
+import {
+  PAID_PLAN_PRICES,
+  type PaidPlanSlug,
+} from "../../lib/plan-catalog";
 
 type Interval = "monthly" | "yearly";
-
-const PRICES: Record<"starter" | "team", { monthly: number; yearly: number }> =
-  {
-    starter: { monthly: 28, yearly: 264 },
-    team: { monthly: 36, yearly: 348 },
-  };
 
 const COUNTRIES = [
   { code: "EG", label: "Egypt" },
@@ -151,7 +149,7 @@ export function PaypalCardForm({
   interval,
   onPaid,
 }: {
-  plan: "starter" | "team";
+  plan: PaidPlanSlug;
   interval: Interval;
   onPaid: () => void;
 }) {
@@ -173,7 +171,7 @@ export function PaypalCardForm({
   intervalRef.current = interval;
   onPaidRef.current = onPaid;
 
-  const price = PRICES[plan][interval];
+  const price = PAID_PLAN_PRICES[plan][interval];
 
   useEffect(() => {
     let cancelled = false;

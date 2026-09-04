@@ -217,7 +217,7 @@ export function LandingVisibility() {
         </div>
 
         <div
-          className="min-w-0 [perspective:1400px]"
+          className="min-w-0 overflow-x-clip [perspective:none] md:[perspective:1400px]"
           data-reveal=""
           style={{ "--reveal-delay": "140ms" } as CSSProperties}
         >
@@ -417,10 +417,10 @@ function MiniSpark() {
 function DashboardPreview() {
   return (
     <div
-      className="origin-center overflow-hidden rounded-lg border border-brand-primary/30 bg-surface-card shadow-[0_0_0_1px_rgb(25_224_111_/_0.06),0_28px_80px_rgb(0_0_0_/_0.55),_-18px_12px_40px_rgb(0_0_0_/_0.35)] [transform:rotateY(-8deg)_rotateX(3deg)_rotateZ(-1.25deg)]"
+      className="origin-center overflow-hidden rounded-lg border border-brand-primary/30 bg-surface-card shadow-[0_0_0_1px_rgb(25_224_111_/_0.06),0_28px_80px_rgb(0_0_0_/_0.55),_-18px_12px_40px_rgb(0_0_0_/_0.35)] md:[transform:rotateY(-8deg)_rotateX(3deg)_rotateZ(-1.25deg)]"
       aria-hidden="true"
     >
-      <div className="grid min-h-[440px] grid-cols-1 md:grid-cols-[172px_1fr]">
+      <div className="grid min-h-0 grid-cols-1 md:min-h-[440px] md:grid-cols-[172px_1fr]">
         {/* Sidebar */}
         <aside className="hidden flex-col border-r border-border-subtle bg-background-secondary p-2.5 md:flex">
           <div className="mb-2.5 flex items-center gap-2 px-1.5 pt-1">

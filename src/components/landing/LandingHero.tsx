@@ -8,7 +8,7 @@ import { HeroVaultScene } from "./HeroVaultScene";
 import { HeroProtectionMesh } from "./HeroProtectionMesh";
 
 const btnBase =
-  "inline-flex h-12 items-center justify-center gap-2 rounded-sm px-[1.35rem] text-[15px] font-semibold no-underline transition-[background-color,border-color,color,box-shadow,transform] duration-fast ease-sv focus-visible:outline-none focus-visible:shadow-focus motion-reduce:transition-none";
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-sm px-4 py-3 text-center text-[15px] font-semibold no-underline transition-[background-color,border-color,color,box-shadow,transform] duration-fast ease-sv focus-visible:outline-none focus-visible:shadow-focus motion-reduce:transition-none sm:h-12 sm:px-[1.35rem] sm:py-0";
 
 const btnPrimary = `${btnBase} btn-shine group bg-brand-primary text-brand-on-primary shadow-glow-green hover:bg-brand-primary-hover hover:shadow-glow-green-strong active:translate-y-px motion-reduce:active:translate-y-0`;
 
@@ -70,7 +70,7 @@ export function LandingHero() {
         <div className="flex max-w-xl flex-col justify-center">
           <p
             {...rise(0)}
-            className="m-0 inline-flex w-fit items-center gap-2 rounded-full border border-brand-primary/40 bg-brand-primary/5 px-3.5 py-1.5 text-[10px] font-semibold tracking-[0.16em] text-brand-primary uppercase animate-sv-rise"
+            className="m-0 inline-flex max-w-full items-center gap-2 rounded-full border border-brand-primary/40 bg-brand-primary/5 px-3 py-1.5 text-[10px] font-semibold tracking-[0.08em] text-brand-primary uppercase animate-sv-rise sm:tracking-[0.16em]"
           >
             <span
               className="h-1.5 w-1.5 rounded-full bg-brand-primary shadow-[0_0_8px_rgb(25_224_111_/_0.9)]"
@@ -82,7 +82,7 @@ export function LandingHero() {
           <h1
             id="landing-hero-title"
             {...rise(90)}
-            className="mt-5 text-[clamp(2.2rem,4.5vw,3.45rem)] font-bold leading-[1.08] tracking-[-0.035em] text-text-primary animate-sv-rise"
+            className="mt-5 text-[clamp(1.85rem,8vw,3.45rem)] font-bold leading-[1.1] tracking-[-0.035em] text-text-primary animate-sv-rise"
           >
             Save your company secrets{" "}
             <span className="text-brand-primary">securely.</span>
@@ -99,13 +99,13 @@ export function LandingHero() {
 
           <div
             {...rise(270)}
-            className="mt-7 flex flex-wrap items-center gap-3 animate-sv-rise"
+            className="mt-7 flex w-full flex-col gap-3 animate-sv-rise sm:w-auto sm:flex-row sm:flex-wrap sm:items-center"
           >
-            <Link href={primary.href} className={btnPrimary}>
+            <Link href={primary.href} className={`${btnPrimary} w-full sm:w-auto`}>
               {primary.label}
               <ArrowRightIcon />
             </Link>
-            <a href="#how-it-works" className={btnSecondary}>
+            <a href="#how-it-works" className={`${btnSecondary} w-full sm:w-auto`}>
               <PlayIcon />
               See how it works
             </a>
@@ -119,7 +119,7 @@ export function LandingHero() {
           </p>
         </div>
 
-        <div className="relative min-w-0">
+        <div className="relative min-w-0 overflow-hidden">
           <HeroVaultScene />
         </div>
       </div>

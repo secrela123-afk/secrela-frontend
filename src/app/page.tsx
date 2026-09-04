@@ -29,7 +29,7 @@ export default function Home() {
       <LandingHeader />
       <ScrollReveal />
 
-      <div className="relative z-[1] mx-auto w-full max-w-[1400px] px-3 sm:px-4 lg:px-5">
+      <div className="relative z-[1] mx-auto w-full max-w-[1400px] px-4 sm:px-4 lg:px-5">
         <LandingHero />
         <LandingSocialStrip />
         <LandingSectionDivider />

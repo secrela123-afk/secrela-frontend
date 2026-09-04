@@ -33,7 +33,7 @@ export function ScrollReveal() {
           }
         }
       },
-      { threshold: 0.15, rootMargin: "0px 0px -6% 0px" },
+      { threshold: 0.01, rootMargin: "80px 0px 80px 0px" },
     );
 
     for (const el of els) io.observe(el);

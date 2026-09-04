@@ -9,14 +9,12 @@ import {
   getPaddleCheckoutConfigRequest,
 } from "../../lib/api";
 import { toast } from "../../stores/toast-store";
+import {
+  PAID_PLAN_PRICES,
+  type PaidPlanSlug,
+} from "../../lib/plan-catalog";
 
 type Interval = "monthly" | "yearly";
-
-const PRICES: Record<"starter" | "team", { monthly: number; yearly: number }> =
-  {
-    starter: { monthly: 28, yearly: 264 },
-    team: { monthly: 36, yearly: 348 },
-  };
 
 type PaddleJs = {
   Environment: { set: (env: "sandbox" | "production") => void };
@@ -68,7 +66,7 @@ export function PaddleCheckoutForm({
   interval,
   onPaid,
 }: {
-  plan: "starter" | "team";
+  plan: PaidPlanSlug;
   interval: Interval;
   onPaid: () => void;
 }) {
@@ -81,7 +79,7 @@ export function PaddleCheckoutForm({
   const txnRef = useRef<string | null>(null);
   const onPaidRef = useRef(onPaid);
   onPaidRef.current = onPaid;
-  const price = PRICES[plan][interval];
+  const price = PAID_PLAN_PRICES[plan][interval];
 
   useEffect(() => {
     let cancelled = false;

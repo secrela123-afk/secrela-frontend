@@ -278,7 +278,7 @@ export type Organization = {
   type: "startup" | "sme" | "enterprise" | "agency" | "other";
   phone: string;
   plan: string;
-  planSlug?: "free" | "starter" | "team" | "enterprise";
+  planSlug?: "free" | "starter" | "team" | "business" | "enterprise";
   subscriptionStatus?:
     | "trialing"
     | "active"
@@ -391,7 +391,7 @@ export type RegisterPayload = {
   email: string;
   password: string;
   phone?: string;
-  plan?: "free" | "starter" | "team" | "enterprise";
+  plan?: "free" | "starter" | "team" | "business" | "enterprise";
   createOrganization?: boolean;
 };
 
@@ -485,7 +485,7 @@ export function extendTrialRequest(days: number) {
 }
 
 export function activateSubscriptionRequest(input: {
-  planSlug: "starter" | "team" | "enterprise" | "free";
+  planSlug: "starter" | "team" | "business" | "enterprise" | "free";
   interval: "monthly" | "yearly";
 }) {
   return apiRequest<{
@@ -567,7 +567,7 @@ export function getBillingOverviewRequest() {
 }
 
 export function createBillingCheckoutRequest(input: {
-  planSlug: "starter" | "team";
+  planSlug: "starter" | "team" | "business";
   interval: "monthly" | "yearly";
 }) {
   return apiRequest<{ checkoutUrl: string; mockActivated?: boolean }>(
@@ -595,7 +595,7 @@ export function getPaypalCardClientTokenRequest() {
 }
 
 export function createPaypalCardOrderRequest(input: {
-  planSlug: "starter" | "team";
+  planSlug: "starter" | "team" | "business";
   interval: "monthly" | "yearly";
 }) {
   return apiRequest<{ orderId: string; amount: string; currency: string }>(
@@ -627,7 +627,7 @@ export function getPaddleCheckoutConfigRequest() {
 }
 
 export function createPaddleCheckoutRequest(input: {
-  planSlug: "starter" | "team";
+  planSlug: "starter" | "team" | "business";
   interval: "monthly" | "yearly";
 }) {
   return apiRequest<{ transactionId: string }>(

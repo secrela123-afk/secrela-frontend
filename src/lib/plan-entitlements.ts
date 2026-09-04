@@ -37,7 +37,7 @@ export type PlanEntitlementSnapshot = {
   entitlements: PlanEntitlements;
   usage: OrganizationUsage;
   capabilities: PlanCapabilities;
-  upgradePlanSlug: Organization["planSlug"] | "enterprise" | null;
+  upgradePlanSlug: Organization["planSlug"] | null;
   upgradePlanLabel: string | null;
 };
 
@@ -114,7 +114,7 @@ function snapshotGenericUpgrade(
 ): PlanEntitlementSnapshot["upgradePlanSlug"] {
   if (planSlug === "free") return "starter";
   if (planSlug === "starter") return "team";
-  if (planSlug === "team") return "enterprise";
+  if (planSlug === "team") return "business";
   return null;
 }
 
@@ -127,6 +127,7 @@ export function featureUpgradeLabel(
   if (slug === "enterprise") return "Enterprise";
   if (slug === "starter") return "Starter";
   if (slug === "team") return "Team";
+  if (slug === "business") return "Business";
   return null;
 }
 

@@ -34,7 +34,7 @@ export const ADMIN_HELP_FAQ: HelpFaqItem[] = [
     id: "admin_security",
     question: "What is Security Center?",
     answer:
-      "Security Center scores measurable risks in your workspace — MFA coverage, old secrets, pending access requests, and similar signals. It is available on Team and Enterprise plans.",
+      "Security Center scores measurable risks in your workspace — MFA coverage, old secrets, pending access requests, and similar signals. It is available on Team and Business plans.",
   },
   {
     id: "admin_plans",

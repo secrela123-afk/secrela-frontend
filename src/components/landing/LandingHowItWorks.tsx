@@ -74,7 +74,7 @@ export function LandingHowItWorks() {
         ))}
       </div>
 
-      <ol className="mt-12 flex list-none flex-col gap-10 p-0 md:hidden">
+      <ol className="mt-12 flex list-none flex-col gap-10 overflow-x-clip p-0 pt-8 md:hidden">
         {STEPS.map((step, index) => (
           <li key={step.number}>
             <StepCard {...step} index={index} />
@@ -97,13 +97,13 @@ function StepCard({
   const featured = index === 1;
 
   return (
-    <div className={featured ? "relative pb-16" : "relative pb-10"}>
+    <div className={featured ? "relative md:pb-16" : "relative md:pb-10"}>
       <div className="relative">
         <article
           className={[
-            "hiw-card relative z-[1] flex flex-col items-center overflow-visible px-6 pb-6 pt-[4.25rem] text-center backdrop-blur-[2px]",
+            "hiw-card relative z-[1] flex flex-col items-center overflow-visible px-4 pb-6 pt-[4.25rem] text-center backdrop-blur-[2px] sm:px-6",
             featured
-              ? "hiw-card--featured px-7 pb-7 pt-[4.5rem]"
+              ? "hiw-card--featured px-4 pb-7 pt-[4.5rem] sm:px-7"
               : "hiw-card--standard",
           ].join(" ")}
         >
@@ -154,7 +154,9 @@ function StepCard({
           </div>
         </article>
 
-        <CardProjection featured={featured} />
+        <div className="hidden md:block">
+          <CardProjection featured={featured} />
+        </div>
       </div>
     </div>
   );

@@ -16,9 +16,12 @@ import {
   IconAlert,
   IconAudit,
   IconChevronLeft,
+  IconCreditCard,
   IconFolder,
   IconIntegrations,
+  IconLock,
   IconMembers,
+  IconOrganization,
   IconOverview,
   IconRoles,
   IconSecret,
@@ -41,6 +44,9 @@ const ICONS: Record<AppNavIcon, typeof IconOverview> = {
   audit: IconAudit,
   alert: IconAlert,
   integrations: IconIntegrations,
+  organization: IconOrganization,
+  billing: IconCreditCard,
+  accountSecurity: IconLock,
   settings: IconSettings,
 };
 
