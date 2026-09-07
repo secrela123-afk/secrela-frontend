@@ -18,7 +18,7 @@ const BENEFITS: AuthSplitBenefit[] = [
   {
     title: "Pay with a card",
     description:
-      "Visa, Mastercard, and other cards via Lemon Squeezy. No PayPal account.",
+      "Visa, Mastercard, and other cards via Lemon Squeezy. No PayPal or Paddle step.",
     icon: LockIcon,
   },
   {
@@ -28,15 +28,15 @@ const BENEFITS: AuthSplitBenefit[] = [
     icon: ShieldOutlineIcon,
   },
   {
-    title: "Subscription billing",
+    title: "This period only",
     description:
-      "Lemon charges monthly or yearly automatically until you cancel in billing.",
+      "One charge for the billing cycle you already picked. Auto-renew is managed in billing.",
     icon: BoltIcon,
   },
 ];
 
 /**
- * Checkout — Lemon Squeezy hosted card payment.
+ * Checkout — opens Lemon Squeezy card payment immediately (no provider chooser).
  */
 export function CheckoutScreen() {
   const router = useRouter();
@@ -83,7 +83,7 @@ export function CheckoutScreen() {
           <span className="text-brand-primary">payment</span>
         </>
       }
-      description="Pay with a card through Lemon Squeezy. You will leave this page briefly, then return after payment."
+      description="Opening card checkout now. You can change monthly or yearly below if needed."
       benefits={BENEFITS}
       footerNote="You stay signed in. Access returns as soon as payment succeeds."
     >
@@ -92,7 +92,7 @@ export function CheckoutScreen() {
           Billing cycle
         </h2>
         <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">
-          One payment for the period you select. Lemon renews automatically.
+          One payment for the period you select.
         </p>
 
         <div className="mt-5 flex gap-2">
@@ -120,7 +120,13 @@ export function CheckoutScreen() {
           </button>
         </div>
 
-        <LemonCheckoutForm plan={plan} interval={interval} onPaid={onPaid} />
+        <LemonCheckoutForm
+          key={`${plan}-${interval}`}
+          plan={plan}
+          interval={interval}
+          onPaid={onPaid}
+          autoStart
+        />
 
         <Link
           href={BILLING_PATH}

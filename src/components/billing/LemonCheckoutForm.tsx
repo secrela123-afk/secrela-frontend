@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { authPrimaryBtn } from "../auth/auth-classes";
 import {
   ApiError,
@@ -15,29 +15,36 @@ import {
 type Interval = "monthly" | "yearly";
 
 /**
- * Lemon Squeezy hosted checkout — customer pays on Lemon, then returns here.
+ * Starts Lemon Squeezy hosted checkout immediately (no Paddle / PayPal chooser).
+ * Test-mode Lemon keys work on production until the store is switched to live.
  */
 export function LemonCheckoutForm({
   plan,
   interval,
   onPaid,
+  autoStart = true,
 }: {
   plan: PaidPlanSlug;
   interval: Interval;
   onPaid: () => void;
+  /** When true (default), open Lemon as soon as the page loads. */
+  autoStart?: boolean;
 }) {
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(autoStart);
+  const [error, setError] = useState<string | null>(null);
+  const startedKey = useRef<string | null>(null);
   const price = PAID_PLAN_PRICES[plan][interval];
 
-  async function onPay() {
+  async function startCheckout() {
     setBusy(true);
+    setError(null);
     try {
       const result = await createBillingCheckoutRequest({
         planSlug: plan,
         interval,
       });
       if (result.mockActivated) {
-        toast.success("Plan activated (dev mock).");
+        toast.success("Plan activated (test mode).");
         onPaid();
         return;
       }
@@ -46,12 +53,22 @@ export function LemonCheckoutForm({
       }
       window.location.assign(result.checkoutUrl);
     } catch (err) {
-      toast.error(
-        err instanceof ApiError ? err.message : "Could not start card checkout",
-      );
+      const message =
+        err instanceof ApiError ? err.message : "Could not start card checkout";
+      setError(message);
+      toast.error(message);
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (!autoStart) return;
+    const key = `${plan}:${interval}`;
+    if (startedKey.current === key) return;
+    startedKey.current = key;
+    void startCheckout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- start once per plan/interval
+  }, [autoStart, plan, interval]);
 
   return (
     <div className="mt-6 flex flex-col">
@@ -71,18 +88,36 @@ export function LemonCheckoutForm({
           </span>
         </p>
       </div>
-      <p className="mt-3 text-[13px] text-text-secondary">
-        You will continue to Lemon Squeezy to enter your card. We never see the
-        full card number. After payment you return to billing.
-      </p>
+
+      {busy && !error ? (
+        <p className="mt-5 text-center text-[13px] text-text-secondary">
+          Opening secure card checkout…
+        </p>
+      ) : null}
+
+      {error ? (
+        <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-[13px] text-amber-200">
+          {error}
+        </div>
+      ) : null}
+
       <button
         type="button"
         disabled={busy}
-        onClick={() => void onPay()}
+        onClick={() => void startCheckout()}
         className={`${authPrimaryBtn} mt-6 disabled:opacity-60`}
       >
-        {busy ? "Opening checkout…" : `Pay $${price.toFixed(2)} with card`}
+        {busy
+          ? "Opening checkout…"
+          : error
+            ? "Try again"
+            : `Pay $${price.toFixed(2)} with card`}
       </button>
+
+      <p className="mt-3 text-center text-[12px] text-text-muted">
+        Card details are collected by Lemon Squeezy. We never see the full card
+        number.
+      </p>
     </div>
   );
 }
