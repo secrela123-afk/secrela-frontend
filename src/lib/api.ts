@@ -550,6 +550,7 @@ export type BillingOverview = {
   subscriptionAmountCents: number | null;
   currency: string;
   autoRenew: boolean;
+  autoRenewInterval?: "monthly" | "yearly" | null;
   trialEndsAt: string | null;
   currentPeriodEndsAt: string | null;
   cardBrand: string | null;

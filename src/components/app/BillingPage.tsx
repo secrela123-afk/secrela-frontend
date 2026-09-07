@@ -360,8 +360,8 @@ export function BillingPage() {
             title="Auto-renew"
             description={
               billing.autoRenew
-                ? `Charges automatically each ${billing.billingInterval ?? "period"}. Turn off to cancel at period end.`
-                : "Off. Paid features lock when this period ends."
+                ? `Lemon charges your card automatically each ${billing.billingInterval === "yearly" ? "year" : "month"}. Same interval as your current plan.`
+                : `Off. You keep access until ${formatDate(billing.currentPeriodEndsAt)}, then the plan stops unless you turn renew back on.`
             }
             status={
               <p>
@@ -375,6 +375,12 @@ export function BillingPage() {
                 >
                   {billing.autoRenew ? "Enabled" : "Disabled"}
                 </span>
+                {billing.billingInterval ? (
+                  <span className="text-text-muted">
+                    {" "}
+                    · {billing.billingInterval === "yearly" ? "Yearly" : "Monthly"} cycle
+                  </span>
+                ) : null}
                 {!billing.autoRenew ? (
                   <span className="text-text-muted">
                     {" "}
@@ -433,7 +439,7 @@ export function BillingPage() {
       <ConfirmDialog
         open={pendingRenewOff}
         title="Turn off auto-renew?"
-        description="When this billing period ends, the workspace will not renew. Vaults and secrets stay in place, but paid features lock until someone subscribes again."
+        description="When this billing period ends, Lemon will not charge again. Vaults and secrets stay stored, but paid access locks until someone turns renew back on or subscribes again."
         confirmLabel="Turn off auto-renew"
         danger
         loading={busy}
