@@ -61,7 +61,7 @@ export function AboutPage() {
           {[
             { label: "Built for", value: "Teams, not individuals" },
             { label: "Model", value: "Assume breach" },
-            { label: "Payments", value: "Paddle & PayPal" },
+            { label: "Payments", value: "Lemon Squeezy" },
           ].map((item) => (
             <div
               key={item.label}

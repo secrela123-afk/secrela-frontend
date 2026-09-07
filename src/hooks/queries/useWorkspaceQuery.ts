@@ -5,6 +5,7 @@ import {
   ApiError,
   getCurrentOrganizationRequest,
   meRequest,
+  syncBillingAfterCheckoutRequest,
   type AuthUser,
   type Organization,
   type Permission,
@@ -23,7 +24,18 @@ async function fetchWorkspace(): Promise<WorkspaceSnapshot> {
   const me = await meRequest();
 
   try {
-    const current = await getCurrentOrganizationRequest();
+    let current = await getCurrentOrganizationRequest();
+    if (
+      current.organization?.subscriptionStatus === "trialing" &&
+      current.organization.planSlug === "free"
+    ) {
+      try {
+        await syncBillingAfterCheckoutRequest();
+        current = await getCurrentOrganizationRequest();
+      } catch {
+        /* Owner/admin sync — members may 403; keep trial snapshot. */
+      }
+    }
     return {
       user: me.user,
       organization: current.organization,

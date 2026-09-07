@@ -7,8 +7,7 @@ import {
   AuthSplitLayout,
   type AuthSplitBenefit,
 } from "../../components/auth/AuthSplitLayout";
-import { PaddleCheckoutForm } from "../../components/billing/PaddleCheckoutForm";
-import { PaypalCardForm } from "../../components/billing/PaypalCardForm";
+import { LemonCheckoutForm } from "../../components/billing/LemonCheckoutForm";
 import { BoltIcon, LockIcon, ShieldOutlineIcon } from "../../components/auth/icons";
 import { BILLING_PATH, LANDING_PRICING } from "../../lib/routes";
 import { isPaidPlanSlug } from "../../lib/plan-catalog";
@@ -17,26 +16,27 @@ type Interval = "monthly" | "yearly";
 
 const BENEFITS: AuthSplitBenefit[] = [
   {
-    title: "Choose how to pay",
+    title: "Pay with a card",
     description:
-      "Card via Paddle (no PayPal account) or PayPal Checkout.",
+      "Visa, Mastercard, and other cards via Lemon Squeezy. No PayPal account.",
     icon: LockIcon,
   },
   {
     title: "Card never hits our servers",
     description:
-      "Paddle or PayPal collect the number. We only receive a paid confirmation.",
+      "Lemon Squeezy collects the number and issues the receipt. We only get a paid confirmation.",
     icon: ShieldOutlineIcon,
   },
   {
-    title: "This period only",
-    description: "One charge for the cycle you pick. Auto-renew comes later.",
+    title: "Subscription billing",
+    description:
+      "Lemon charges monthly or yearly automatically until you cancel in billing.",
     icon: BoltIcon,
   },
 ];
 
 /**
- * Checkout — on-site PayPal Card Fields (one-time capture).
+ * Checkout — Lemon Squeezy hosted card payment.
  */
 export function CheckoutScreen() {
   const router = useRouter();
@@ -49,7 +49,6 @@ export function CheckoutScreen() {
       ? intervalParam
       : "monthly",
   );
-  const [method, setMethod] = useState<"paddle" | "paypal">("paddle");
 
   const onPaid = useCallback(() => {
     router.replace("/app/billing");
@@ -84,7 +83,7 @@ export function CheckoutScreen() {
           <span className="text-brand-primary">payment</span>
         </>
       }
-      description="Pay with a card through Paddle, or continue with PayPal."
+      description="Pay with a card through Lemon Squeezy. You will leave this page briefly, then return after payment."
       benefits={BENEFITS}
       footerNote="You stay signed in. Access returns as soon as payment succeeds."
     >
@@ -92,8 +91,8 @@ export function CheckoutScreen() {
         <h2 className="text-[1.375rem] font-bold tracking-tight text-text-primary">
           Billing cycle
         </h2>
-        <p className="mt-1 text-[13px] text-text-secondary">
-          One payment for the period you select.
+        <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">
+          One payment for the period you select. Lemon renews automatically.
         </p>
 
         <div className="mt-5 flex gap-2">
@@ -121,40 +120,7 @@ export function CheckoutScreen() {
           </button>
         </div>
 
-        <div className="mt-6 flex gap-2">
-          <button
-            type="button"
-            onClick={() => setMethod("paddle")}
-            className={
-              method === "paddle"
-                ? "flex-1 rounded-md border border-brand-primary bg-brand-primary/10 px-3 py-2.5 text-sm font-semibold text-brand-primary"
-                : "flex-1 rounded-md border border-border-default px-3 py-2.5 text-sm font-medium text-text-secondary"
-            }
-          >
-            Card (Paddle)
-          </button>
-          <button
-            type="button"
-            onClick={() => setMethod("paypal")}
-            className={
-              method === "paypal"
-                ? "flex-1 rounded-md border border-brand-primary bg-brand-primary/10 px-3 py-2.5 text-sm font-semibold text-brand-primary"
-                : "flex-1 rounded-md border border-border-default px-3 py-2.5 text-sm font-medium text-text-secondary"
-            }
-          >
-            PayPal
-          </button>
-        </div>
-
-        {method === "paddle" ? (
-          <PaddleCheckoutForm
-            plan={plan}
-            interval={interval}
-            onPaid={onPaid}
-          />
-        ) : (
-          <PaypalCardForm plan={plan} interval={interval} onPaid={onPaid} />
-        )}
+        <LemonCheckoutForm plan={plan} interval={interval} onPaid={onPaid} />
 
         <Link
           href={BILLING_PATH}

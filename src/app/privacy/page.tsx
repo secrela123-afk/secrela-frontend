@@ -6,7 +6,7 @@ import { pageTitle } from "../../lib/brand";
 export const metadata: Metadata = {
   title: pageTitle("Privacy Policy"),
   description:
-    "How Secrela collects, uses, and protects information — including payment processing by Paddle.",
+    "How Secrela collects, uses, and protects information — including payment processing by Lemon Squeezy.",
 };
 
 export default function PrivacyPage() {
@@ -14,7 +14,7 @@ export default function PrivacyPage() {
     <LegalDocument
       eyebrow="Legal"
       title="Privacy Policy"
-      intro="This notice describes the information we collect, how we use it, and the role of payment partners such as Paddle and PayPal."
+      intro="This notice describes the information we collect, how we use it, and the role of payment partners such as Lemon Squeezy."
       sections={PRIVACY_SECTIONS}
     />
   );

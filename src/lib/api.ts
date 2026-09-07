@@ -540,6 +540,7 @@ export type BillingPaymentMethod = {
 };
 
 export type BillingOverview = {
+  lemonConfigured: boolean;
   paypalConfigured: boolean;
   paddleConfigured: boolean;
   planSlug: Organization["planSlug"];
@@ -563,6 +564,13 @@ export function getBillingOverviewRequest() {
   return apiRequest<{ billing: BillingOverview }>(
     "/api/v1/billing/overview",
     { method: "GET" },
+  );
+}
+
+export function syncBillingAfterCheckoutRequest() {
+  return apiRequest<{ billing: BillingOverview }>(
+    "/api/v1/billing/sync",
+    { method: "POST" },
   );
 }
 

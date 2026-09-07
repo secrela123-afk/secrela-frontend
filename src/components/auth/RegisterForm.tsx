@@ -43,10 +43,13 @@ const RULES = [
 ] as const;
 
 const inputClass =
-  "block h-10 w-full rounded-md border border-[rgba(100,130,150,0.18)] bg-background-secondary/80 pl-10 pr-3 text-[14px] text-text-primary outline-none transition-[border-color,box-shadow] duration-fast placeholder:text-text-muted focus:border-brand-primary focus:shadow-focus";
+  "block h-9 w-full rounded-md border border-[rgba(100,130,150,0.18)] bg-background-secondary/80 pl-9 pr-3 text-[13px] text-text-primary outline-none transition-[border-color,box-shadow] duration-fast placeholder:text-text-muted focus:border-brand-primary focus:shadow-focus";
 
 const ssoBtnClass =
   "flex h-9 items-center justify-center gap-1.5 rounded-md border border-[rgba(100,130,150,0.18)] bg-background-secondary/50 text-[12px] font-medium text-text-primary transition-[border-color,background-color] duration-fast hover:border-brand-primary/35 hover:bg-surface-elevated focus-visible:outline-none focus-visible:shadow-focus";
+
+const fieldIconClass =
+  "pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-text-muted";
 
 function passwordStrength(password: string): number {
   return RULES.reduce((n, rule) => n + (rule.test(password) ? 1 : 0), 0);
@@ -147,47 +150,44 @@ export function RegisterForm() {
     }
   }
 
-  const planHint = `Start your ${FREE_TRIAL_DAYS}-day free trial — verify your email to open your dashboard.`;
+  const planHint = `${FREE_TRIAL_DAYS}-day free trial. No card required.`;
 
   return (
     <form onSubmit={onSubmit} className="flex w-full flex-col" noValidate>
-      <div className="flex flex-col items-center text-center">
+      <div className="flex items-center gap-3">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-inherit no-underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:shadow-focus"
+          className="inline-flex shrink-0 items-center text-inherit no-underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:shadow-focus"
           aria-label={APP_NAME}
         >
           <SecureVaultLogo
             state={logo?.state ?? "enter"}
-            size={28}
+            size={26}
             decorative
           />
-          <span className="text-[14px] font-semibold tracking-tight text-text-primary">
-            {APP_NAME}
-          </span>
         </Link>
-        <p className="mt-2 text-[12px] font-medium text-text-secondary">
-          {joiningViaInvite ? "Join your team" : "New company workspace"}
-        </p>
-        <h2 className="mt-1 text-[1.375rem] font-semibold tracking-tight text-text-primary sm:text-[1.5rem]">
-          Create your account
-        </h2>
-        <p className="mt-1 max-w-md text-[13px] leading-snug text-text-secondary">
-          {joiningViaInvite
-            ? "Use your work email. Your company workspace is already set up."
-            : planHint}
-        </p>
+        <div className="min-w-0">
+          <h2 className="text-[1.2rem] font-semibold tracking-tight text-text-primary sm:text-[1.3rem]">
+            Create your account
+          </h2>
+          <p className="mt-0.5 text-[12px] leading-snug text-text-secondary">
+            {joiningViaInvite
+              ? "Join your team with your work email."
+              : planHint}
+          </p>
+        </div>
       </div>
 
-      <div className="mt-4 flex flex-col gap-2.5">
+      <div className="mt-4 grid grid-cols-2 gap-2.5">
         <Field
           label={joiningViaInvite ? "Your name" : "Company name"}
           error={fieldErrors.companyName}
+          className={joiningViaInvite ? "col-span-2" : ""}
         >
           {joiningViaInvite ? (
-            <UserIcon className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+            <UserIcon className={fieldIconClass} />
           ) : (
-            <BuildingIcon className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+            <BuildingIcon className={fieldIconClass} />
           )}
           <input
             className={inputClass}
@@ -202,7 +202,7 @@ export function RegisterForm() {
 
         {!joiningViaInvite ? (
           <Field label="Phone number" error={fieldErrors.phone}>
-            <PhoneIcon className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+            <PhoneIcon className={fieldIconClass} />
             <input
               className={inputClass}
               type="tel"
@@ -216,8 +216,12 @@ export function RegisterForm() {
           </Field>
         ) : null}
 
-        <Field label="Work email" error={fieldErrors.email}>
-          <MailIcon className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+        <Field
+          label="Work email"
+          error={fieldErrors.email}
+          className="col-span-2"
+        >
+          <MailIcon className={fieldIconClass} />
           <input
             className={inputClass}
             type="email"
@@ -231,7 +235,7 @@ export function RegisterForm() {
         </Field>
 
         <Field label="Password" error={fieldErrors.password}>
-          <LockIcon className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+          <LockIcon className={fieldIconClass} />
           <input
             className={`${inputClass} pr-10`}
             type={showPassword ? "text" : "password"}
@@ -248,28 +252,8 @@ export function RegisterForm() {
           />
         </Field>
 
-        {password.length > 0 ? (
-          <div
-            className="flex gap-1"
-            role="meter"
-            aria-label="Password strength"
-            aria-valuemin={0}
-            aria-valuemax={4}
-            aria-valuenow={strength}
-          >
-            {[0, 1, 2, 3].map((i) => (
-              <span
-                key={i}
-                className={`h-1 flex-1 rounded-pill ${
-                  i < strength ? "bg-brand-primary" : "bg-border-subtle"
-                }`}
-              />
-            ))}
-          </div>
-        ) : null}
-
         <Field label="Confirm password" error={fieldErrors.confirm}>
-          <LockIcon className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+          <LockIcon className={fieldIconClass} />
           <input
             className={`${inputClass} pr-10`}
             type={showConfirm ? "text" : "password"}
@@ -287,7 +271,27 @@ export function RegisterForm() {
         </Field>
       </div>
 
-      <ul className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1">
+      {password.length > 0 ? (
+        <div
+          className="mt-2 flex gap-1"
+          role="meter"
+          aria-label="Password strength"
+          aria-valuemin={0}
+          aria-valuemax={4}
+          aria-valuenow={strength}
+        >
+          {[0, 1, 2, 3].map((i) => (
+            <span
+              key={i}
+              className={`h-1 flex-1 rounded-pill ${
+                i < strength ? "bg-brand-primary" : "bg-border-subtle"
+              }`}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
         {RULES.map((rule) => {
           const ok = rule.test(password);
           return (
@@ -313,7 +317,7 @@ export function RegisterForm() {
       <button
         type="submit"
         disabled={loading}
-        className="relative mt-4 flex h-11 w-full items-center justify-center rounded-md bg-brand-primary text-[14px] font-bold text-brand-on-primary shadow-glow-green transition-[background-color,box-shadow,transform] duration-fast hover:bg-brand-primary-hover hover:shadow-glow-green-strong hover:-translate-y-px focus-visible:outline-none focus-visible:shadow-focus active:translate-y-0 disabled:cursor-wait motion-reduce:hover:translate-y-0"
+        className="relative mt-3 flex h-10 w-full items-center justify-center rounded-md bg-brand-primary text-[14px] font-bold text-brand-on-primary shadow-glow-green transition-[background-color,box-shadow,transform] duration-fast hover:bg-brand-primary-hover hover:shadow-glow-green-strong hover:-translate-y-px focus-visible:outline-none focus-visible:shadow-focus active:translate-y-0 disabled:cursor-wait motion-reduce:hover:translate-y-0"
       >
         <span>Create account</span>
         <span className="absolute right-3.5">
@@ -325,7 +329,7 @@ export function RegisterForm() {
         </span>
       </button>
 
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-3 flex items-center gap-3">
         <span className="h-px flex-1 bg-border-subtle" />
         <span className="shrink-0 text-[11px] text-text-muted">
           or continue with
@@ -333,17 +337,15 @@ export function RegisterForm() {
         <span className="h-px flex-1 bg-border-subtle" />
       </div>
 
-      <div className="mt-3 grid grid-cols-1 gap-2">
-        <a
-          href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5005"}/api/v1/auth/oauth/google?next=/app`}
-          className={ssoBtnClass}
-        >
-          <GoogleIcon className="h-3.5 w-3.5" />
-          Continue with Google
-        </a>
-      </div>
+      <a
+        href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5005"}/api/v1/auth/oauth/google?next=/app`}
+        className={`${ssoBtnClass} mt-2.5`}
+      >
+        <GoogleIcon className="h-3.5 w-3.5" />
+        Continue with Google
+      </a>
 
-      <p className="mt-4 text-center text-[13px] text-text-secondary">
+      <p className="mt-3 text-center text-[13px] text-text-secondary">
         Have an account?{" "}
         <Link
           href={authPathWithNext("/login", {
@@ -363,13 +365,15 @@ function Field({
   label,
   children,
   error,
+  className = "",
 }: {
   label: string;
   children: ReactNode;
   error?: string;
+  className?: string;
 }) {
   return (
-    <label className="block text-[12px] font-medium text-text-primary">
+    <label className={`block text-[12px] font-medium text-text-primary ${className}`}>
       {label}
       <span className="relative mt-1 block">{children}</span>
       {error ? (

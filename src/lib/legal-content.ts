@@ -55,8 +55,8 @@ export const TERMS_SECTIONS: LegalSection[] = [
   {
     heading: "6. Fees, taxes, and payment processors",
     paragraphs: [
-      "Paid plans are billed according to the prices shown at checkout. Card payments are processed by Paddle.com Market Ltd and/or its affiliates (\"Paddle\") as Merchant of Record. For those purchases, Paddle is the seller of record, collects payment (including applicable taxes), and issues the customer receipt. PayPal may be offered as an alternative checkout method.",
-      "Unless stated otherwise, prices may be tax-inclusive or tax-exclusive depending on your location and Paddle's tax calculation. Failed, expired, or unpaid periods may result in restricted access until payment succeeds.",
+      "Paid plans are billed according to the prices shown at checkout. Card payments are processed by Lemon Squeezy and/or its affiliates (\"Lemon Squeezy\") as Merchant of Record. For those purchases, Lemon Squeezy is the seller of record, collects payment (including applicable taxes), and issues the customer receipt.",
+      "Unless stated otherwise, prices may be tax-inclusive or tax-exclusive depending on your location and Lemon Squeezy's tax calculation. Failed, expired, or unpaid periods may result in restricted access until payment succeeds.",
     ],
   },
   {
@@ -75,7 +75,7 @@ export const TERMS_SECTIONS: LegalSection[] = [
     heading: "9. Disclaimers and liability",
     paragraphs: [
       "The Service is provided \"as is.\" To the fullest extent permitted by law, we disclaim implied warranties of merchantability, fitness for a particular purpose, and non-infringement. We do not warrant uninterrupted or error-free operation.",
-      "To the fullest extent permitted by law, our total liability arising out of the Service is limited to the fees you paid to us (or to Paddle for Secrela) in the three months before the claim. We are not liable for indirect, incidental, special, or consequential damages, or for loss of secrets caused by your access-control choices, compromised user devices, or credentials you share.",
+      "To the fullest extent permitted by law, our total liability arising out of the Service is limited to the fees you paid to us (or to Lemon Squeezy for Secrela) in the three months before the claim. We are not liable for indirect, incidental, special, or consequential damages, or for loss of secrets caused by your access-control choices, compromised user devices, or credentials you share.",
     ],
   },
   {
@@ -97,7 +97,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     heading: "1. Who we are",
     paragraphs: [
       "This Privacy Policy explains how Secrela (\"we\", \"us\") collects, uses, and shares information when you use secrela.com and the Secrela application.",
-      "For card checkout processed by Paddle, Paddle also acts as an independent controller/processor of payment data as described in Paddle's own privacy notice. We do not receive or store full payment card numbers.",
+      "For card checkout processed by Lemon Squeezy, Lemon Squeezy also acts as an independent controller/processor of payment data as described in Lemon Squeezy's own privacy notice. We do not receive or store full payment card numbers.",
     ],
   },
   {
@@ -106,7 +106,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
       "Account data: name, work email, password (stored as a hash), organization name, and optional profile details you provide.",
       "Workspace data: vaults, secret metadata (names, types, permissions), membership, roles, access requests, and audit-log events. Secret values are stored encrypted. We do not put secret values in logs, URLs, or analytics.",
       "Usage and technical data: IP address, browser type, approximate location derived by our hosting provider or payment partner, security events (failed login, MFA changes), and cookies required to keep you signed in.",
-      "Payment data: plan, billing interval, transaction identifiers, and limited card brand/last4 returned by the payment provider. Full PAN/CVV is handled only by Paddle or PayPal.",
+      "Payment data: plan, billing interval, transaction identifiers, and limited card brand/last4 returned by the payment provider. Full PAN/CVV is handled only by Lemon Squeezy.",
     ],
   },
   {
@@ -120,7 +120,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     heading: "4. Sharing",
     paragraphs: [
       "Infrastructure and email providers that host or deliver the Service under contract.",
-      "Payment partners: Paddle (Merchant of Record for card checkout) and PayPal when you choose PayPal. They process payments, taxes, and receipts.",
+      "Payment partners: Lemon Squeezy (Merchant of Record for card checkout). They process payments, taxes, and receipts.",
       "We may disclose information if required by law, to protect users, or in connection with a merger or sale of the business, with appropriate safeguards.",
     ],
   },
@@ -133,7 +133,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     heading: "6. Retention",
     paragraphs: [
-      "We keep account and workspace data while your organization is active. After deletion or prolonged inactivity, we delete or anonymize data except where we must retain records (for example security incidents or invoices held by Paddle).",
+      "We keep account and workspace data while your organization is active. After deletion or prolonged inactivity, we delete or anonymize data except where we must retain records (for example security incidents or invoices held by Lemon Squeezy).",
     ],
   },
   {
@@ -151,7 +151,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     heading: "9. International processing",
     paragraphs: [
-      "We and our processors may process data in countries other than yours. Payment data is processed according to Paddle's and PayPal's locations and policies.",
+      "We and our processors may process data in countries other than yours. Payment data is processed according to Lemon Squeezy's locations and policies.",
     ],
   },
   {
@@ -173,7 +173,7 @@ export const REFUND_SECTIONS: LegalSection[] = [
     heading: "1. Overview",
     paragraphs: [
       "This Refund Policy explains how refunds work for Secrela paid plans. It applies to purchases made on secrela.com.",
-      "Card checkout is processed by Paddle as Merchant of Record. Paddle is the seller of record for those transactions, collects the payment, and is responsible for issuing refunds on eligible card payments. PayPal purchases follow PayPal's refund process for that payment method.",
+      "Card checkout is processed by Lemon Squeezy as Merchant of Record. Lemon Squeezy is the seller of record for those transactions, collects the payment, and is responsible for issuing refunds on eligible card payments.",
     ],
   },
   {
@@ -186,7 +186,7 @@ export const REFUND_SECTIONS: LegalSection[] = [
     heading: "3. Eligibility",
     paragraphs: [
       "You may request a refund within 14 days of a successful payment if the Service was not provisioned, was unavailable due to our fault, or you were charged in error (duplicate charge or wrong plan).",
-      "Refunds are generally not available after the 14-day window, or where the organization has actively used paid features (creating vaults, storing secrets, inviting members) unless required by law or Paddle's buyer-protection rules.",
+      "Refunds are generally not available after the 14-day window, or where the organization has actively used paid features (creating vaults, storing secrets, inviting members) unless required by law or Lemon Squeezy's buyer-protection rules.",
       "Free-trial usage is not a paid purchase and is not refundable.",
     ],
   },
@@ -194,13 +194,13 @@ export const REFUND_SECTIONS: LegalSection[] = [
     heading: "4. How to request a refund",
     paragraphs: [
       "Email sales@secrela.com from the billing owner's work email. Include: organization name, plan (Starter or Team), approximate payment date, and the reason.",
-      "We will review the request and, for Paddle card payments, work with Paddle to process an approved refund to the original payment method. Refunds typically appear within 5–10 business days depending on the card network and bank.",
+      "We will review the request and, for Lemon Squeezy card payments, work with Lemon Squeezy to process an approved refund to the original payment method. Refunds typically appear within 5–10 business days depending on the card network and bank.",
     ],
   },
   {
     heading: "5. Taxes and fees",
     paragraphs: [
-      "If a refund is issued, taxes collected by Paddle may be reversed according to tax rules in the buyer's jurisdiction. Payment-processor fees are handled by Paddle or PayPal and may not always be returned in full.",
+      "If a refund is issued, taxes collected by Lemon Squeezy may be reversed according to tax rules in the buyer's jurisdiction. Payment-processor fees are handled by Lemon Squeezy and may not always be returned in full.",
     ],
   },
   {

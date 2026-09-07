@@ -7,6 +7,7 @@ import {
   confirmPaddleCheckoutRequest,
   createPaddleCheckoutRequest,
   getPaddleCheckoutConfigRequest,
+  meRequest,
 } from "../../lib/api";
 import { toast } from "../../stores/toast-store";
 import {
@@ -17,9 +18,10 @@ import {
 type Interval = "monthly" | "yearly";
 
 type PaddleJs = {
-  Environment: { set: (env: "sandbox" | "production") => void };
+  Environment: { set: (env: "sandbox") => void };
   Initialize: (opts: {
     token: string;
+    pwCustomer?: { email?: string };
     eventCallback?: (event: { name?: string; data?: { id?: string } }) => void;
   }) => void;
   Checkout: {
@@ -85,17 +87,26 @@ export function PaddleCheckoutForm({
     let cancelled = false;
     (async () => {
       try {
-        const config = await getPaddleCheckoutConfigRequest();
+        const [config, me] = await Promise.all([
+          getPaddleCheckoutConfigRequest(),
+          meRequest().catch(() => null),
+        ]);
         if (cancelled) return;
         setLoadError(null);
         setConfigured(config.configured);
         if (!config.configured) return;
         const paddle = await loadPaddleJs();
         if (cancelled) return;
-        paddle.Environment.set(config.environment);
+        // Live defaults to production. Only pin sandbox when testing.
+        if (config.environment === "sandbox") {
+          paddle.Environment.set("sandbox");
+        }
         if (!initRef.current) {
           paddle.Initialize({
             token: config.clientToken,
+            ...(me?.user.email
+              ? { pwCustomer: { email: me.user.email } }
+              : {}),
             eventCallback: (event) => {
               const txnId = txnRef.current;
               if (

@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
   getBillingOverviewRequest,
+  syncBillingAfterCheckoutRequest,
   updateAutoRenewRequest,
   type BillingOverview,
   type BillingPaymentMethod,
@@ -136,16 +137,37 @@ export function BillingPage() {
     const checkout = searchParams.get("checkout");
     const mock = searchParams.get("mock");
     if (checkout === "success") {
-      toast.success("Payment received", "Your workspace plan is updating.");
-      void load({ silent: true });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.workspace });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.entitlements });
-      router.replace("/app/billing");
-    } else if (mock === "1") {
+      let cancelled = false;
+      void (async () => {
+        try {
+          await syncBillingAfterCheckoutRequest();
+          if (cancelled) return;
+          toast.success("Payment received", "Your paid plan is now active.");
+          await Promise.all([
+            load({ silent: true }),
+            queryClient.invalidateQueries({ queryKey: queryKeys.workspace }),
+            queryClient.invalidateQueries({ queryKey: queryKeys.entitlements }),
+          ]);
+        } catch (err) {
+          toast.error(
+            err instanceof ApiError
+              ? err.message
+              : "Payment received, but the plan is still updating. Open Billing in a moment.",
+          );
+        } finally {
+          if (!cancelled) router.replace("/app/billing");
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (mock === "1") {
       toast.success("Dev mock activate", "No live processor was charged.");
       void load();
       router.replace("/app/billing");
     }
+    return undefined;
   }, [searchParams, load, router, queryClient]);
 
   async function applyAutoRenew(next: boolean) {
@@ -231,7 +253,7 @@ export function BillingPage() {
   const recommended = recommendedPaidSlug(billing.planSlug);
   const daysLeft = trialDaysRemaining(billing.trialEndsAt);
   const periodIso = billing.currentPeriodEndsAt ?? billing.trialEndsAt;
-  const processorReady = billing.paddleConfigured || billing.paypalConfigured;
+  const processorReady = billing.lemonConfigured;
   const portalReady = Boolean(billing.updatePaymentUrl || billing.customerPortalUrl);
   const snapshot = entitlementsQuery.data;
   const subscribeSlug = recommended ?? "starter";
@@ -294,7 +316,7 @@ export function BillingPage() {
 
         <SettingsCard
           title="Payment method"
-          description="Brand and last four digits only. Card numbers stay with Paddle or PayPal."
+          description="Brand and last four digits only. Card numbers stay with Lemon Squeezy."
           status={
             <PaymentStatus
               billing={billing}

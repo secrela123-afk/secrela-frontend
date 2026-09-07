@@ -11,7 +11,6 @@ import {
 } from "../../components/auth/auth-logo-context";
 import { RegisterForm } from "../../components/auth/RegisterForm";
 import { AuthFormEnter } from "../../components/auth/AuthFormEnter";
-import { authFormCard } from "../../components/auth/auth-classes";
 import {
   BoltIcon,
   ShieldOutlineIcon,
@@ -68,9 +67,9 @@ export function RegisterScreen() {
           aria-hidden="true"
         />
 
-        <div className="relative z-10 mx-auto flex h-full w-full max-w-[1320px] flex-col px-6 sm:px-8 lg:flex-row lg:px-12 xl:px-16">
-          {/* Left — marketing (~45%) */}
-          <section className="relative hidden h-full w-[45%] flex-col py-8 pr-6 lg:flex xl:py-10 xl:pr-10">
+        <div className="relative z-10 mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-col px-4 sm:px-6 lg:flex-row lg:px-10 xl:px-14">
+          {/* Left — marketing (~40%) */}
+          <section className="relative hidden h-full w-[40%] min-w-0 flex-col py-8 pr-6 lg:flex xl:py-10 xl:pr-8">
             <Link
               href="/"
               className="inline-flex items-center gap-1.5 text-inherit no-underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:shadow-focus"
@@ -126,16 +125,16 @@ export function RegisterScreen() {
             </div>
           </section>
 
-          {/* Right — registration card (~55%) */}
-          <section className="relative flex h-full w-full flex-1 flex-col items-center justify-center py-4 lg:w-[55%] lg:pl-6 xl:pl-10">
+          {/* Right — registration card (~60%) */}
+          <section className="relative flex h-full min-h-0 w-full flex-1 flex-col items-center overflow-y-auto overscroll-contain py-3 lg:w-[60%] lg:py-6 lg:pl-4 xl:pl-8">
             <Link
               href="/"
-              className="mb-3 inline-flex w-full max-w-[560px] items-center gap-1.5 text-inherit no-underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:shadow-focus lg:hidden"
+              className="mb-2 inline-flex w-full max-w-[720px] shrink-0 items-center gap-1.5 text-inherit no-underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:shadow-focus lg:hidden"
               aria-label={APP_NAME}
             >
               <SecureVaultLogo
                 state={AUTH_HEADER_LOGO_STATE}
-                size={28}
+                size={26}
                 decorative
               />
               <span className="text-[15px] font-semibold tracking-tight text-text-primary">
@@ -143,8 +142,8 @@ export function RegisterScreen() {
               </span>
             </Link>
 
-            <AuthFormEnter className="max-w-[560px]">
-              <div className={`${authFormCard} sm:px-7 sm:py-6`}>
+            <AuthFormEnter className="my-auto w-full max-w-[720px]">
+              <div className="w-full rounded-xl border border-border-subtle bg-surface-card/90 px-4 py-4 shadow-elevated backdrop-blur-md sm:px-6 sm:py-5">
                 <RegisterForm />
               </div>
             </AuthFormEnter>
