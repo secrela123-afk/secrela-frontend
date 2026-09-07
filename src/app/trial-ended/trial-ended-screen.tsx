@@ -12,8 +12,9 @@ import {
 } from "../../components/auth/AuthSplitLayout";
 import { authPrimaryBtn } from "../../components/auth/auth-classes";
 import { ArrowRightIcon, BoltIcon, LockIcon, ShieldOutlineIcon, UsersIcon } from "../../components/auth/icons";
-import { LANDING_PRICING, checkoutPath } from "../../lib/routes";
+import { LANDING_PRICING } from "../../lib/routes";
 import { useWorkspaceActions } from "../../hooks/workspace/useWorkspaceActions";
+import { StartCheckoutButton } from "../../components/billing/StartCheckoutButton";
 
 const BENEFITS: AuthSplitBenefit[] = [
   {
@@ -95,12 +96,16 @@ export function TrialEndedScreen() {
         </ul>
 
         {canManage || !summary ? (
-          <Link href={checkoutPath("starter")} className={`${authPrimaryBtn} mt-8`}>
+          <StartCheckoutButton
+            plan="starter"
+            interval="monthly"
+            className={`${authPrimaryBtn} mt-8`}
+          >
             <span>Subscribe with card</span>
             <span className="absolute right-[1.15rem]">
               <ArrowRightIcon className="h-5 w-5" />
             </span>
-          </Link>
+          </StartCheckoutButton>
         ) : (
           <p className="mt-8 rounded-md border border-border-subtle bg-surface-elevated/80 px-4 py-3 text-center text-[13px] text-text-secondary">
             Ask your workspace owner or admin to subscribe so the team can reopen

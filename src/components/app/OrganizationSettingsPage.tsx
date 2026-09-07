@@ -16,9 +16,9 @@ import { useWorkspaceActions } from "../../hooks/workspace/useWorkspaceActions";
 import { usePlanEntitlementsQuery } from "../../hooks/queries/usePlanEntitlementsQuery";
 import {
   formatPlanLimit,
-  upgradeHref,
   type PlanEntitlementSnapshot,
 } from "../../lib/plan-entitlements";
+import { isPaidPlanSlug } from "../../lib/plan-catalog";
 import { isOwnerOrAdminRole } from "../../lib/app-nav";
 import { StatusBadge } from "./ui";
 import { ConfirmDialog } from "./RowActionsMenu";
@@ -27,6 +27,7 @@ import {
   trialDaysRemaining,
 } from "../../lib/subscription";
 import { toast } from "../../stores/toast-store";
+import { StartCheckoutButton } from "../billing/StartCheckoutButton";
 import {
   IconCheck,
   IconChevronRight,
@@ -904,9 +905,19 @@ function CapacityCard({
         </ul>
       </div>
 
-      {upgradePlanLabel && upgradePlanSlug ? (
+      {upgradePlanLabel &&
+      upgradePlanSlug &&
+      isPaidPlanSlug(upgradePlanSlug) ? (
+        <StartCheckoutButton
+          plan={upgradePlanSlug}
+          interval="monthly"
+          className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-sm border border-brand-primary/40 bg-brand-primary/10 text-[12px] font-semibold text-brand-primary no-underline transition-colors hover:bg-brand-primary/15 focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-70"
+        >
+          Upgrade to {upgradePlanLabel}
+        </StartCheckoutButton>
+      ) : upgradePlanLabel ? (
         <Link
-          href={upgradeHref(upgradePlanSlug)}
+          href={BILLING_PATH}
           className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-sm border border-brand-primary/40 bg-brand-primary/10 text-[12px] font-semibold text-brand-primary no-underline transition-colors hover:bg-brand-primary/15 focus-visible:outline-none focus-visible:shadow-focus"
         >
           Upgrade to {upgradePlanLabel}

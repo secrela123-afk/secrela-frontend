@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,8 +12,8 @@ import {
   type BillingPaymentMethod,
   type Organization,
 } from "../../lib/api";
-import { checkoutPath } from "../../lib/routes";
 import { toast } from "../../stores/toast-store";
+import { StartCheckoutButton } from "../billing/StartCheckoutButton";
 import { queryKeys } from "../../lib/query-keys";
 import { useRequiredWorkspace } from "../../hooks/workspace/useWorkspace";
 import { usePlanEntitlementsQuery } from "../../hooks/queries/usePlanEntitlementsQuery";
@@ -257,7 +256,6 @@ export function BillingPage() {
   const portalReady = Boolean(billing.updatePaymentUrl || billing.customerPortalUrl);
   const snapshot = entitlementsQuery.data;
   const subscribeSlug = recommended ?? "starter";
-  const subscribeHref = checkoutPath(subscribeSlug, interval);
 
   const periodLabel =
     billing.subscriptionStatus === "trialing" ? "Trial ends" : "Period ends";
@@ -265,21 +263,33 @@ export function BillingPage() {
   let currentPlanAction: ReactNode = null;
   if (billing.subscriptionStatus === "trialing") {
     currentPlanAction = (
-      <Link href={subscribeHref} className={settingsPrimaryBtn}>
+      <StartCheckoutButton
+        plan={subscribeSlug}
+        interval={interval}
+        className={settingsPrimaryBtn}
+      >
         Subscribe
-      </Link>
+      </StartCheckoutButton>
     );
   } else if (billing.subscriptionStatus === "pending_payment") {
     currentPlanAction = (
-      <Link href={subscribeHref} className={settingsPrimaryBtn}>
+      <StartCheckoutButton
+        plan={subscribeSlug}
+        interval={interval}
+        className={settingsPrimaryBtn}
+      >
         Resume checkout
-      </Link>
+      </StartCheckoutButton>
     );
   } else if (billing.subscriptionStatus === "expired") {
     currentPlanAction = (
-      <Link href={subscribeHref} className={settingsPrimaryBtn}>
+      <StartCheckoutButton
+        plan={subscribeSlug}
+        interval={interval}
+        className={settingsPrimaryBtn}
+      >
         Renew access
-      </Link>
+      </StartCheckoutButton>
     );
   }
 
@@ -681,8 +691,6 @@ function PlanRow({
     : null;
   const isCurrent = paid && currentSlug === slug;
   const sameInterval = billing.billingInterval === interval;
-  const href = checkoutPath(slug, interval);
-
   let cta = `Subscribe`;
   let disabled = false;
   if (isCurrent && sameInterval) {
@@ -725,12 +733,13 @@ function PlanRow({
           {cta}
         </span>
       ) : (
-        <Link
-          href={href}
+        <StartCheckoutButton
+          plan={slug}
+          interval={interval}
           className={primary ? settingsPrimaryBtn : settingsSecondaryBtn}
         >
           {cta}
-        </Link>
+        </StartCheckoutButton>
       )}
     </li>
   );

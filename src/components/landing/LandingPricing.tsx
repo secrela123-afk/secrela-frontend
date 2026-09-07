@@ -28,6 +28,7 @@ import {
   isPaidPlanSlug,
   type PaidPlanSlug,
 } from "../../lib/plan-catalog";
+import { StartCheckoutButton } from "../billing/StartCheckoutButton";
 
 type Billing = "monthly" | "yearly";
 type Accent = "green" | "purple";
@@ -155,6 +156,8 @@ function planSlugForCheckout(plan: Plan): PaidPlanSlug | null {
 type PlanAction = {
   cta: string;
   href?: string;
+  /** When set, click starts Lemon checkout immediately (no /checkout UI). */
+  checkout?: { plan: PaidPlanSlug; interval: Billing };
   disabled: boolean;
 };
 
@@ -218,8 +221,12 @@ function planAction(
     };
   }
 
+  if (!slug) {
+    return { href: APP_HOME, cta: plan.guestCta, disabled: false };
+  }
+
   return {
-    href: checkoutUrl,
+    checkout: { plan: slug, interval: billing },
     cta: plan.guestCta,
     disabled: false,
   };
@@ -468,6 +475,21 @@ export function LandingPricing() {
                   >
                     {action.cta}
                   </span>
+                ) : action.checkout ? (
+                  <StartCheckoutButton
+                    plan={action.checkout.plan}
+                    interval={action.checkout.interval}
+                    className={
+                      plan.featured
+                        ? "btn-shine mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-primary px-4 text-sm font-semibold text-brand-on-primary shadow-[0_0_24px_rgb(25_224_111_/_0.4)] transition-colors duration-fast ease-sv hover:bg-brand-primary-hover focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-70"
+                        : green
+                          ? "mt-6 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-border-default px-4 text-[13px] font-semibold text-text-primary transition-colors duration-fast ease-sv hover:border-brand-primary hover:text-brand-primary focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-70"
+                          : "mt-6 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-purple/55 px-4 text-[13px] font-semibold text-text-primary transition-colors duration-fast ease-sv hover:border-purple hover:text-purple focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-70"
+                    }
+                  >
+                    {action.cta}
+                    <span aria-hidden="true">→</span>
+                  </StartCheckoutButton>
                 ) : (
                   <Link
                     href={action.href ?? LANDING_PRICING}

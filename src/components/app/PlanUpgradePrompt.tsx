@@ -4,10 +4,11 @@ import Link from "next/link";
 import {
   featureUpgradeLabel,
   recommendedUpgradeForFeature,
-  upgradeHref,
   type PlanEntitlementSnapshot,
 } from "../../lib/plan-entitlements";
+import { isPaidPlanSlug } from "../../lib/plan-catalog";
 import { LANDING_PRICING } from "../../lib/routes";
+import { StartCheckoutButton } from "../billing/StartCheckoutButton";
 
 type PlanUpgradePromptProps = {
   title: string;
@@ -27,9 +28,9 @@ export function PlanUpgradePrompt({
   compact = false,
   className = "",
 }: PlanUpgradePromptProps) {
-  const href = snapshot?.upgradePlanSlug
-    ? upgradeHref(snapshot.upgradePlanSlug)
-    : LANDING_PRICING;
+  const upgradeSlug = snapshot?.upgradePlanSlug;
+  const paidSlug =
+    upgradeSlug && isPaidPlanSlug(upgradeSlug) ? upgradeSlug : null;
   const cta = snapshot?.upgradePlanLabel
     ? `Upgrade to ${snapshot.upgradePlanLabel}`
     : "View plans";
@@ -44,12 +45,22 @@ export function PlanUpgradePrompt({
       </p>
       {!compact ? (
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Link
-            href={href}
-            className="inline-flex rounded-sm bg-brand-primary px-4 py-2 text-[12px] font-semibold text-brand-on-primary shadow-glow-green hover:bg-brand-primary-hover"
-          >
-            {cta}
-          </Link>
+          {paidSlug ? (
+            <StartCheckoutButton
+              plan={paidSlug}
+              interval="monthly"
+              className="inline-flex rounded-sm bg-brand-primary px-4 py-2 text-[12px] font-semibold text-brand-on-primary shadow-glow-green hover:bg-brand-primary-hover disabled:opacity-70"
+            >
+              {cta}
+            </StartCheckoutButton>
+          ) : (
+            <Link
+              href={LANDING_PRICING}
+              className="inline-flex rounded-sm bg-brand-primary px-4 py-2 text-[12px] font-semibold text-brand-on-primary shadow-glow-green hover:bg-brand-primary-hover"
+            >
+              {cta}
+            </Link>
+          )}
           <Link
             href={LANDING_PRICING}
             className="text-[12px] font-medium text-brand-primary hover:text-brand-primary-hover"
