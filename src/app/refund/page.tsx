@@ -6,7 +6,7 @@ import { pageTitle } from "../../lib/brand";
 export const metadata: Metadata = {
   title: pageTitle("Refund Policy"),
   description:
-    "Secrela refund policy for paid plans. Card payments are processed by Paddle as Merchant of Record.",
+    "Secrela refund policy for paid plans. Card payments are processed by Lemon Squeezy as Merchant of Record.",
 };
 
 export default function RefundPage() {
@@ -14,7 +14,7 @@ export default function RefundPage() {
     <LegalDocument
       eyebrow="Legal"
       title="Refund Policy"
-      intro="How refunds work for Secrela paid plans, including purchases processed by Paddle as Merchant of Record."
+      intro="How refunds work for Secrela paid plans, including purchases processed by Lemon Squeezy as Merchant of Record."
       sections={REFUND_SECTIONS}
     />
   );
