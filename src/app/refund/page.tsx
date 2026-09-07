@@ -5,8 +5,7 @@ import { pageTitle } from "../../lib/brand";
 
 export const metadata: Metadata = {
   title: pageTitle("Refund Policy"),
-  description:
-    "Secrela refund policy for paid plans. Card payments are processed by Lemon Squeezy as Merchant of Record.",
+  description: "When Secrela refunds apply and how to request one.",
 };
 
 export default function RefundPage() {
@@ -14,7 +13,7 @@ export default function RefundPage() {
     <LegalDocument
       eyebrow="Legal"
       title="Refund Policy"
-      intro="How refunds work for Secrela paid plans, including purchases processed by Lemon Squeezy as Merchant of Record."
+      intro="When you can get a refund, when you cannot, and how to ask."
       sections={REFUND_SECTIONS}
     />
   );
