@@ -49,10 +49,6 @@ export function AboutPage() {
             "radial-gradient(ellipse 70% 50% at 20% 0%, rgb(34 211 90 / 0.12), transparent 55%), radial-gradient(ellipse 40% 30% at 90% 30%, rgb(34 211 90 / 0.05), transparent 50%), linear-gradient(180deg, var(--color-background-primary), var(--color-background-secondary))",
         }}
       />
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[55vh] opacity-40 hero-protection-rings"
-        aria-hidden
-      />
       <LandingHeader />
 
       <div className="relative z-[1] mx-auto w-full max-w-[920px] px-4 pt-14 pb-20 sm:px-6 sm:pt-20">
