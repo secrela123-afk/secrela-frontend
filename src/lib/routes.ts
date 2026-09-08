@@ -10,10 +10,10 @@ export const APP_HOME = "/app";
 /** Shown when a 14-day free trial has ended. */
 export const TRIAL_ENDED_PATH = "/trial-ended";
 
-/** Payment checkout (Lemon Squeezy hosted card payment). */
+/** Payment checkout (Creem hosted card payment). */
 export const CHECKOUT_PATH = "/checkout";
 
-/** In-app billing — Lemon Squeezy subscription and auto-renew. */
+/** In-app billing — Creem subscription and auto-renew. */
 export const BILLING_PATH = "/app/billing";
 
 /** Signed-in user: MFA, recovery codes, sessions. */

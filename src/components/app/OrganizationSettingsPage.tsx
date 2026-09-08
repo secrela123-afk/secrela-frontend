@@ -733,7 +733,7 @@ function PlanCard({
               </p>
               <p className="mt-0.5 text-[12px] text-text-muted">
                 {organization.autoRenew
-                  ? `Lemon renews on the ${intervalLabel?.toLowerCase() ?? "same"} cycle. Turn off to stop after this period.`
+                  ? `Creem renews on the ${intervalLabel?.toLowerCase() ?? "same"} cycle. Turn off to stop charging.`
                   : "Off. Access stays until the current period ends, then locks."}
               </p>
             </div>

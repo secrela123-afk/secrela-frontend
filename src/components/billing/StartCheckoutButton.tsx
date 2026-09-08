@@ -17,7 +17,7 @@ type Props = {
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "type" | "children">;
 
 /**
- * Starts Lemon checkout from the click — no intermediate /checkout UI.
+ * Starts Creem checkout from the click — no intermediate /checkout UI.
  */
 export function StartCheckoutButton({
   plan,

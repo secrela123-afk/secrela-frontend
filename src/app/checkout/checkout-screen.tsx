@@ -11,7 +11,7 @@ import { BILLING_PATH, LANDING_PRICING } from "../../lib/routes";
 type Interval = "monthly" | "yearly";
 
 /**
- * Silent bridge: /checkout?plan=&interval= → Lemon hosted form.
+ * Silent bridge: /checkout?plan=&interval= → Creem hosted form.
  * Brief loading only — no intermediate billing UI.
  */
 export function CheckoutScreen() {

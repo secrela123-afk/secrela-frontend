@@ -47,7 +47,7 @@ export const TERMS_SECTIONS: LegalSection[] = [
   {
     heading: "Billing",
     paragraphs: [
-      "Paid plans are charged at checkout prices. Card payments are handled by Lemon Squeezy as Merchant of Record (receipts and taxes).",
+      "Paid plans are charged at checkout prices. Card payments are handled by Creem as Merchant of Record (receipts and taxes).",
       "Failed or unpaid periods may lock paid access until payment succeeds. Trials are limited as shown in the product.",
     ],
   },
@@ -68,7 +68,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
       "Account: name, work email, hashed password, organization name.",
       "Workspace: vaults, secret names/types/permissions, members, roles, access requests, audit events. Secret values are encrypted — never in logs or URLs.",
       "Technical: IP, browser, security events, and a session cookie to keep you signed in.",
-      "Billing: plan, interval, transaction ids, and card brand/last4 from Lemon Squeezy. We never store full card numbers.",
+      "Billing: plan, interval, transaction ids, and card brand/last4 from Creem. We never store full card numbers.",
     ],
   },
   {
@@ -81,7 +81,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     heading: "Sharing",
     paragraphs: [
-      "Only with infrastructure and email providers under contract, and with Lemon Squeezy for card payments.",
+      "Only with infrastructure and email providers under contract, and with Creem for card payments.",
       "We may disclose information if required by law or to protect users, with appropriate safeguards.",
     ],
   },
@@ -89,7 +89,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     heading: "Security & retention",
     paragraphs: [
       "HTTPS in transit, hashed passwords, session controls, encrypted secret values. You still protect devices, MFA, and who you invite.",
-      "We keep data while your organization is active, then delete or anonymize it except where records must be kept (for example invoices at Lemon Squeezy).",
+      "We keep data while your organization is active, then delete or anonymize it except where records must be kept (for example invoices at Creem).",
     ],
   },
   {
@@ -106,13 +106,13 @@ export const REFUND_SECTIONS: LegalSection[] = [
     heading: "When refunds apply",
     paragraphs: [
       "You can request a refund within 14 days of payment if Secrela was not provisioned, was unavailable due to our fault, or you were charged in error (duplicate or wrong plan).",
-      "Card charges are processed by Lemon Squeezy as Merchant of Record. Approved refunds go back to the original payment method.",
+      "Card charges are processed by Creem as Merchant of Record. Approved refunds go back to the original payment method.",
     ],
   },
   {
     heading: "When refunds do not apply",
     paragraphs: [
-      "After 14 days, or if the workspace already used paid features (vaults, secrets, invites), unless law or Lemon Squeezy buyer protection requires otherwise.",
+      "After 14 days, or if the workspace already used paid features (vaults, secrets, invites), unless law or Creem buyer protection requires otherwise.",
       "Free trial usage is not a paid purchase and is not refundable.",
     ],
   },

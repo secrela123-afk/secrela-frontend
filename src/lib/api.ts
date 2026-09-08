@@ -541,6 +541,7 @@ export type BillingPaymentMethod = {
 
 export type BillingOverview = {
   lemonConfigured: boolean;
+  creemConfigured: boolean;
   paypalConfigured: boolean;
   paddleConfigured: boolean;
   planSlug: Organization["planSlug"];

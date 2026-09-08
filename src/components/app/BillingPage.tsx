@@ -252,7 +252,7 @@ export function BillingPage() {
   const recommended = recommendedPaidSlug(billing.planSlug);
   const daysLeft = trialDaysRemaining(billing.trialEndsAt);
   const periodIso = billing.currentPeriodEndsAt ?? billing.trialEndsAt;
-  const processorReady = billing.lemonConfigured;
+  const processorReady = billing.creemConfigured;
   const portalReady = Boolean(billing.updatePaymentUrl || billing.customerPortalUrl);
   const snapshot = entitlementsQuery.data;
   const subscribeSlug = recommended ?? "starter";
@@ -326,7 +326,7 @@ export function BillingPage() {
 
         <SettingsCard
           title="Payment method"
-          description="Brand and last four digits only. Card numbers stay with Lemon Squeezy."
+          description="Brand and last four digits only. Card numbers stay with Creem."
           status={
             <PaymentStatus
               billing={billing}
@@ -360,7 +360,7 @@ export function BillingPage() {
             title="Auto-renew"
             description={
               billing.autoRenew
-                ? `Lemon charges your card automatically each ${billing.billingInterval === "yearly" ? "year" : "month"}. Same interval as your current plan.`
+                ? `Creem charges your card automatically each ${billing.billingInterval === "yearly" ? "year" : "month"}. Same interval as your current plan.`
                 : `Off. You keep access until ${formatDate(billing.currentPeriodEndsAt)}, then the plan stops unless you turn renew back on.`
             }
             status={
@@ -439,7 +439,7 @@ export function BillingPage() {
       <ConfirmDialog
         open={pendingRenewOff}
         title="Turn off auto-renew?"
-        description="When this billing period ends, Lemon will not charge again. Vaults and secrets stay stored, but paid access locks until someone turns renew back on or subscribes again."
+        description="Creem will stop charging this card. Vaults and secrets stay stored, but paid access may lock until someone subscribes again."
         confirmLabel="Turn off auto-renew"
         danger
         loading={busy}

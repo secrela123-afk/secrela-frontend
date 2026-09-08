@@ -13,7 +13,7 @@ export default function PrivacyPage() {
     <LegalDocument
       eyebrow="Legal"
       title="Privacy Policy"
-      intro="Clear answers about your data. Card numbers stay with Lemon Squeezy — we never see them."
+      intro="Clear answers about your data. Card numbers stay with Creem — we never see them."
       sections={PRIVACY_SECTIONS}
     />
   );

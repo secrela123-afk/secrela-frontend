@@ -156,7 +156,7 @@ function planSlugForCheckout(plan: Plan): PaidPlanSlug | null {
 type PlanAction = {
   cta: string;
   href?: string;
-  /** When set, click starts Lemon checkout immediately (no /checkout UI). */
+  /** When set, click starts Creem checkout immediately (no /checkout UI). */
   checkout?: { plan: PaidPlanSlug; interval: Billing };
   disabled: boolean;
 };

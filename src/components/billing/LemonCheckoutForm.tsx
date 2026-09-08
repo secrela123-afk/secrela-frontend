@@ -15,8 +15,8 @@ import {
 type Interval = "monthly" | "yearly";
 
 /**
- * Starts Lemon Squeezy hosted checkout immediately (no Paddle / PayPal chooser).
- * Test-mode Lemon keys work on production until the store is switched to live.
+ * Starts Creem hosted checkout immediately (Lemon / Paddle / PayPal paused).
+ * Test-mode Creem keys charge test cards only.
  */
 export function LemonCheckoutForm({
   plan,
@@ -27,7 +27,7 @@ export function LemonCheckoutForm({
   plan: PaidPlanSlug;
   interval: Interval;
   onPaid: () => void;
-  /** When true (default), open Lemon as soon as the page loads. */
+  /** When true (default), open Creem as soon as the page loads. */
   autoStart?: boolean;
 }) {
   const [busy, setBusy] = useState(autoStart);
@@ -49,7 +49,7 @@ export function LemonCheckoutForm({
         return;
       }
       if (!result.checkoutUrl) {
-        throw new Error("Lemon Squeezy did not return a checkout URL");
+        throw new Error("Creem did not return a checkout URL");
       }
       window.location.assign(result.checkoutUrl);
     } catch (err) {
@@ -115,7 +115,7 @@ export function LemonCheckoutForm({
       </button>
 
       <p className="mt-3 text-center text-[12px] text-text-muted">
-        Card details are collected by Lemon Squeezy. We never see the full card
+        Card details are collected by Creem. We never see the full card
         number.
       </p>
     </div>

@@ -7,7 +7,7 @@ import type { PaidPlanSlug } from "./plan-catalog";
 export type BillingInterval = "monthly" | "yearly";
 
 /**
- * Start Lemon Squeezy hosted checkout and leave this app immediately.
+ * Start Creem hosted checkout and leave this app immediately.
  * Returns true when navigation (or mock activation) succeeded.
  */
 export async function startLemonCheckout(input: {
@@ -25,7 +25,7 @@ export async function startLemonCheckout(input: {
       return { ok: true };
     }
     if (!result.checkoutUrl) {
-      return { ok: false, message: "Lemon Squeezy did not return a checkout URL" };
+      return { ok: false, message: "Creem did not return a checkout URL" };
     }
     window.location.assign(result.checkoutUrl);
     return { ok: true };
